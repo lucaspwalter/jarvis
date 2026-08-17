@@ -21,6 +21,8 @@ class CommandTests(unittest.TestCase):
     def test_open_apps_as_spoken(self):
         self.assertEqual(interpret_command("abri o terminal").action, ["kitty"])
         self.assertEqual(interpret_command("abre fadi fox").action, ["firefox"])
+        self.assertEqual(interpret_command("abra o Dolphin").action, ["dolphin"])
+        self.assertEqual(interpret_command("abra os arquivos").action, ["dolphin"])
 
     def test_extra_commands(self):
         self.assertEqual(interpret_command("mostre meu ip local").response, "Mostrando IP local.")

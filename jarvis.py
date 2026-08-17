@@ -300,6 +300,7 @@ def interpret_command(text: str, now: datetime | None = None) -> CommandResult:
         "chrome": ["google-chrome-stable"],
         "firefox": ["firefox"],
         "terminal": ["kitty"],
+        "dolphin": ["dolphin"],
         "arquivos": ["dolphin"],
         "gerenciador de arquivos": ["dolphin"],
     }
