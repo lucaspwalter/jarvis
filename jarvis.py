@@ -194,7 +194,7 @@ class Jarvis:
             with wave.open(str(raw_path), "wb") as wav_file:
                 self.voice.synthesize_wav(text, wav_file)
             effect = (
-                "asetrate=22050*0.90,aresample=22050,atempo=1.111111,"
+                "asetrate=22050*0.90,aresample=22050,atempo=1.388889,"
                 "highpass=f=110,lowpass=f=6500,"
                 "chorus=0.6:0.8:15|22:0.32|0.22:0.30|0.22:1.8|2.2,"
                 "flanger=delay=2:depth=1.5:regen=12:width=35:speed=0.3,"
