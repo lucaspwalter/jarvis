@@ -31,6 +31,8 @@ class CommandTests(unittest.TestCase):
         self.assertEqual(interpret_command("mostre os commits").response, "Mostrando commits.")
         self.assertEqual(interpret_command("abra o Steam").response, "Abrindo Steam.")
         self.assertEqual(interpret_command("silencie o microfone").response, "Silenciando microfone.")
+        self.assertEqual(interpret_command("valide o Python").response, "Validando Python.")
+        self.assertEqual(interpret_command("mostre a janela atual").response, "Mostrando janela atual.")
 
     def test_dashboard_commands_variations(self):
         self.assertEqual(interpret_command("ative o modo desempenho").action[-1], "/home/lucas/.local/bin/performace")

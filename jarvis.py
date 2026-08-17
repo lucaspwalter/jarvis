@@ -232,15 +232,35 @@ EXTRA_COMMAND_SPECS = [
     ("mostrar calendario", "cal -3", "Mostrando calendário."),
     ("mostrar data", "date", "Mostrando data."),
     ("mostrar relogio", "date '+%H:%M:%S'", "Mostrando relógio."),
+    ("ler clipboard", "wl-paste", "Lendo clipboard."),
+    ("limpar clipboard", "printf '' | wl-copy", "Limpando clipboard."),
+    ("abrir lixeira", "dolphin trash:/", "Abrindo lixeira."),
+    ("esvaziar lixeira", "gio trash --empty", "Esvaziando lixeira."),
+    ("compactar projeto", "cd $HOME/Documentos/projetos/jarvis && tar -czf $HOME/jarvis-backup.tar.gz --exclude=.venv --exclude=.git .", "Compactando projeto."),
+    ("fazer backup do jarvis", "cd $HOME/Documentos/projetos/jarvis && tar -czf $HOME/jarvis-backup.tar.gz --exclude=.venv --exclude=.git .", "Fazendo backup do Jarvis."),
+    ("sincronizar projeto", "cd $HOME/Documentos/projetos/jarvis && git pull --ff-only", "Sincronizando projeto."),
+    ("mostrar versao python", "python --version", "Mostrando versão do Python."),
+    ("mostrar pacotes python", "cd $HOME/Documentos/projetos/jarvis && .venv/bin/pip list", "Mostrando pacotes Python."),
+    ("validar python", "cd $HOME/Documentos/projetos/jarvis && .venv/bin/python -m py_compile jarvis.py write_codex.py", "Validando Python."),
+    ("verificar codigo", "cd $HOME/Documentos/projetos/jarvis && git diff --check", "Verificando código."),
+    ("mostrar diferencas", "cd $HOME/Documentos/projetos/jarvis && git diff", "Mostrando diferenças."),
+    ("abrir readme", "xdg-open $HOME/Documentos/projetos/jarvis/README.md", "Abrindo README."),
+    ("abrir arquivos recentes", "dolphin --select $HOME/Documentos/projetos/jarvis", "Abrindo arquivos recentes."),
+    ("minimizar janela", "hyprctl dispatch movetoworkspacesilent special", "Minimizando janela."),
+    ("fechar janela atual", "hyprctl dispatch killactive", "Fechando janela atual."),
+    ("tela cheia", "hyprctl dispatch fullscreen", "Alternando tela cheia."),
+    ("mostrar workspace", "hyprctl activeworkspace", "Mostrando workspace atual."),
+    ("mostrar janela atual", "hyprctl activewindow", "Mostrando janela atual."),
+    ("abrir pasta home", "dolphin $HOME", "Abrindo pasta pessoal."),
 ]
 EXTRA_FILLERS = ("", "por favor", "senhor", "agora", "rapidamente", "neste momento", "no computador", "aqui", "para mim", "sem demora")
 EXTRA_VERBS = ("mostrar", "mostre", "mostra", "ver", "veja", "exibir", "exiba", "consultar", "consulte", "abrir", "abra", "iniciar", "inicie", "iniciar", "reiniciar", "reinicie", "executar", "execute", "fazer", "faça", "rodar", "rode", "testar", "teste", "testa", "me diga", "diga")
 
 def extra_command_result(command: str) -> CommandResult | None:
     matches = []
-    targets = [re.sub(r"^(mostrar|abrir|testar|executar|rodar|reiniciar|silenciar|ativar|capturar|gravar|parar)\s+", "", phrase) for phrase, _, _ in EXTRA_COMMAND_SPECS]
+    targets = [re.sub(r"^(mostrar|abrir|testar|executar|rodar|reiniciar|silenciar|ativar|capturar|gravar|parar|validar)\s+", "", phrase) for phrase, _, _ in EXTRA_COMMAND_SPECS]
     for phrase, shell, response in EXTRA_COMMAND_SPECS:
-        target = re.sub(r"^(mostrar|abrir|testar|executar|rodar|reiniciar|silenciar|ativar|capturar|gravar|parar)\s+", "", phrase)
+        target = re.sub(r"^(mostrar|abrir|testar|executar|rodar|reiniciar|silenciar|ativar|capturar|gravar|parar|validar)\s+", "", phrase)
         verb = phrase.split()[0]
         stem = verb[: max(3, len(verb) - 2)]
         target_match = re.search(rf"(?<!\w){re.escape(target)}(?!\w)", command)
