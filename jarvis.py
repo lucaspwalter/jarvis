@@ -366,6 +366,10 @@ def interpret_command(text: str, now: datetime | None = None) -> CommandResult:
         "quem e a mulher mais linda do mundo",
         "qual e a mulher mais bonita do mundo",
         "quem e a mulher mais bonita do mundo",
+        "a mulher mais linda do mundo",
+        "com a mulher mais linda do mundo",
+        "a mulher mais bonita do mundo",
+        "com a mulher mais bonita do mundo",
     )):
         return CommandResult("Emylee.")
     if re.search(r"\b(aumente|aumentar|suba|mais) (o )?volume\b", command):

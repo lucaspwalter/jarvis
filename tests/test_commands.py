@@ -81,6 +81,7 @@ class CommandTests(unittest.TestCase):
 
     def test_emylee(self):
         self.assertEqual(interpret_command("qual a mulher mais linda do mundo").response, "Emylee.")
+        self.assertEqual(interpret_command("com a mulher mais linda do mundo").response, "Emylee.")
 
     def test_volume(self):
         result = interpret_command("aumente o volume")
