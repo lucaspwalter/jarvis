@@ -197,9 +197,10 @@ class Jarvis:
                 "asetrate=22050*0.90,aresample=22050,atempo=1.388889,"
                 "highpass=f=110,lowpass=f=6500,"
                 "chorus=0.6:0.8:15|22:0.32|0.22:0.30|0.22:1.8|2.2,"
-                "flanger=delay=2:depth=1.5:regen=12:width=35:speed=0.3,"
-                "acrusher=bits=12:mix=0.14:mode=lin,"
-                "aecho=0.8:0.4:26:0.13,"
+                "flanger=delay=2:depth=2:regen=20:width=45:speed=0.35,"
+                "acrusher=bits=10:mix=0.28:mode=lin,"
+                "tremolo=f=32:d=0.12,"
+                "aecho=0.8:0.4:24:0.18,"
                 "acompressor=threshold=-20dB:ratio=3:attack=8:release=70,volume=0.92"
             )
             filtered = subprocess.run(
