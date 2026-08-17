@@ -391,13 +391,19 @@ class Jarvis:
             subprocess.run(["pactl", "set-sink-input-volume", stream_id, f"{volume}%"], check=False)
 
     @staticmethod
-    def record_command(stream: AudioStream, prefix: list[np.ndarray]) -> np.ndarray:
+    def record_command(
+        stream: AudioStream,
+        prefix: list[np.ndarray],
+        *,
+        silence_seconds: float = SILENCE_SECONDS,
+        max_seconds: float = MAX_COMMAND_SECONDS,
+    ) -> np.ndarray:
         frames = list(prefix)
         silent_frames = 0
         # Wake-word audio stays in prefix; wait for command speech after activation.
         speech_seen = False
-        max_frames = math.ceil(MAX_COMMAND_SECONDS * SAMPLE_RATE / FRAME_SAMPLES)
-        silence_limit = math.ceil(SILENCE_SECONDS * SAMPLE_RATE / FRAME_SAMPLES)
+        max_frames = math.ceil(max_seconds * SAMPLE_RATE / FRAME_SAMPLES)
+        silence_limit = math.ceil(silence_seconds * SAMPLE_RATE / FRAME_SAMPLES)
         minimum_frames = math.ceil(MIN_COMMAND_SECONDS * SAMPLE_RATE / FRAME_SAMPLES)
 
         for _ in range(max_frames):
@@ -477,11 +483,12 @@ class Jarvis:
                                 time.sleep(0.2)
                                 try:
                                     self.set_listening(True)
-                                    dictated_audio = self.record_command(stream, [])
+                                    dictated_audio = self.record_command(stream, [], silence_seconds=0.75, max_seconds=15.0)
                                 finally:
                                     self.set_listening(False)
                                 dictated_text = self.transcribe(dictated_audio)
                                 if dictated_text:
+                                    LOG.info("Ditado reconhecido: %s", dictated_text)
                                     self.execute(f"digite para mim: {dictated_text}")
                                 else:
                                     self.speak("Não entendi. Diga novamente.")
