@@ -159,7 +159,7 @@ def interpret_command(text: str, now: datetime | None = None) -> CommandResult:
         return CommandResult("Diminuindo volume.", ["wpctl", "set-volume", "@DEFAULT_AUDIO_SINK@", "5%-"])
     if "silencie" in command or "mute" in command or "mudo" in command:
         return CommandResult("Alternando silêncio.", ["wpctl", "set-mute", "@DEFAULT_AUDIO_SINK@", "toggle"])
-    if any(term in command for term in ("pause a musica", "pausar musica", "continue a musica", "toque a musica")):
+    if re.search(r"\b(pause|pausar|pausa|continue|continuar|retome|retomar|retomar|toque|tocar)\b.*\b(m[iu]sica|m[ií]dia|video|vídeo|som|reprodu[cç][aã]o)\b", command):
         return CommandResult("Controlando reprodução.", ["playerctl", "play-pause"])
     if "proxima musica" in command:
         return CommandResult("Próxima música.", ["playerctl", "next"])

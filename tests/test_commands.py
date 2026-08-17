@@ -56,6 +56,10 @@ class CommandTests(unittest.TestCase):
         result = interpret_command("aumente o volume")
         self.assertEqual(result.action[:2], ["wpctl", "set-volume"])
 
+    def test_pause_media(self):
+        for phrase in ("pause a mídia", "pausar o vídeo", "pause o som", "continue a música"):
+            self.assertEqual(interpret_command(phrase).action, ["playerctl", "play-pause"])
+
     def test_search(self):
         result = interpret_command("pesquise por PipeWire no Linux")
         self.assertIn("pipewire", result.response)
