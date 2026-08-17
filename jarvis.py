@@ -2,7 +2,6 @@
 from __future__ import annotations
 
 import argparse
-from concurrent.futures import ThreadPoolExecutor
 import logging
 import math
 import os
@@ -453,17 +452,11 @@ class Jarvis:
 
     def transcribe(self, audio: np.ndarray) -> str:
         started = time.monotonic()
-        executor = ThreadPoolExecutor(max_workers=2)
-        small_future = executor.submit(self.transcribe_with, self.whisper_small, audio)
-        medium_future = executor.submit(self.transcribe_with, self.whisper_medium, audio)
-        small_text = small_future.result()
+        small_text = self.transcribe_with(self.whisper_small, audio)
         if self.command_is_understood(small_text):
-            medium_future.cancel()
-            executor.shutdown(wait=False, cancel_futures=True)
             LOG.info("Transcrição escolhida: small (%.2fs)", time.monotonic() - started)
             return small_text
-        medium_text = medium_future.result()
-        executor.shutdown(wait=False, cancel_futures=True)
+        medium_text = self.transcribe_with(self.whisper_medium, audio)
         LOG.info("Transcrição escolhida: medium (%.2fs)", time.monotonic() - started)
         return medium_text or small_text
 
