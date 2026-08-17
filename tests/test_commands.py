@@ -35,7 +35,7 @@ class CommandTests(unittest.TestCase):
         self.assertIn("pipewire+no+linux", result.action[-1])
 
     def test_honorific(self):
-        self.assertEqual(add_honorific("Sistema online."), "Sistema online, senhor.")
+        self.assertEqual(add_honorific("Sistema online."), "Senhor, Sistema online.")
         self.assertEqual(add_honorific("Como posso ajudar, senhor?"), "Como posso ajudar, senhor?")
 
 

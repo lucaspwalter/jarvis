@@ -55,7 +55,7 @@ def add_honorific(text: str) -> str:
         return text
     punctuation = text[-1] if text.endswith((".", "!", "?")) else "."
     body = text[:-1] if text.endswith((".", "!", "?")) else text
-    return f"{body}, senhor{punctuation}"
+    return f"Senhor, {body}{punctuation}"
 
 
 def detached(command: list[str]) -> None:
