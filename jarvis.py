@@ -453,6 +453,10 @@ class Jarvis:
     def transcribe(self, audio: np.ndarray) -> str:
         started = time.monotonic()
         small_text = self.transcribe_with(self.whisper_small, audio)
+        stripped_small = re.sub(r"^(ei +)?jarvis\b", "", small_text, flags=re.IGNORECASE).strip(" ,.")
+        if not stripped_small:
+            LOG.info("Transcrição escolhida: small (somente ativação, %.2fs)", time.monotonic() - started)
+            return small_text
         if self.command_is_understood(small_text):
             LOG.info("Transcrição escolhida: small (%.2fs)", time.monotonic() - started)
             return small_text
