@@ -74,6 +74,33 @@ class CommandResult:
     action: list[str] | None = None
 
 
+def expand_command_variations(script_commands: list[tuple[str, list[str], str]]) -> list[tuple[str, list[str], str]]:
+    expansions = {
+        "resfriar normal": ("restaurar|normalizar|reverter|voltar|retornar|desfazer|cancelar|parar|deixar|colocar", "limites originais|resfriamento normal|temperatura normal|modo normal|configuração normal|configuracao normal|desempenho original|parâmetros originais|parametros originais|estado original|controle normal|configurações originais|configuracoes originais"),
+        "performace": ("ativar|ative|iniciar|inicie|ligar|ligue|usar|use|colocar|coloque", "performance|modo performance|modo desempenho|modo jogo|preparar pc para jogar|pc para jogar|alto desempenho|jogos|jogar|perfil gamer|perfil de jogos|potência máxima|potencia maxima"),
+        "atualizarlayout": ("atualizar|atualize|sincronizar|sincronize|recarregar|recarregue|aplicar|aplique|refazer|refaça|refazer|corrigir", "layout|o layout|configurações|configuracoes|configuração visual|configuracao visual|barra|waybar|tela|ambiente|aparência|aparencia|dotfiles"),
+        "3monitor": ("ativar|ative|iniciar|inicie|ligar|ligue|usar|use|conectar|conecte|adicionar|adicione", "terceiro monitor|terceira monitora|três monitores|tres monitores|3 monitores|tela três|tela tres|monitor extra|monitor adicional|notebook como monitor|notebook de monitor|monitor do notebook"),
+        "pc-remoto": ("abrir|abra|iniciar|inicie|conectar|conecte|acessar|acesse|usar|use|ligar|ligue", "pc remoto|computador remoto|acesso remoto|pc no notebook|computador no notebook|desktop remoto|meu pc remotamente|meu computador|sessão remota|sessao remota|moonlight|stream do pc"),
+        "autoclicker": ("ativar|ative|iniciar|inicie|ligar|ligue|abrir|abra|executar|execute|usar|use", "autoclicker|auto clicker|auto clique|cliques automáticos|cliques automaticos|cliques repetidos|cliques rápidos|cliques rapidos|clicador automático|clicador automatico|automação de cliques|automacao de cliques"),
+        "consumo": ("mostrar|mostre|ver|veja|consultar|consulte|exibir|exiba|informar|informe|checar|verificar", "consumo|consumo do pc|status do pc|estado do computador|cpu e ram|cpu ram|memória e cpu|memoria e cpu|temperatura do pc|recursos do pc|uso do computador|desempenho do pc"),
+        "notebook": ("abrir|abra|iniciar|inicie|conectar|conecte|acessar|acesse|entrar|entre|usar|use", "notebook|o notebook|meu notebook|computador portátil|computador portatil|ssh do notebook|conexão do notebook|conexao do notebook|sessão do notebook|sessao do notebook|terminal do notebook|acesso ao notebook"),
+        "parar3monitor": ("parar|pare|desativar|desative|desligar|desligue|encerrar|encerre|fechar|feche|finalizar|finalize", "terceiro monitor|terceira monitora|três monitores|tres monitores|3 monitores|tela três|tela tres|monitor extra|monitor adicional|monitor remoto|moonlight|transmissão remota|transmissao remota"),
+        "pesados": ("mostrar|mostre|ver|veja|listar|liste|exibir|exiba|consultar|consulte|encontrar|encontre", "processos pesados|programas pesados|aplicativos pesados|processos que mais usam|programas que mais usam|maior consumo|maior uso de cpu|maior uso de memória|maior uso de memoria|tarefas pesadas|processos do pc|aplicativos do pc"),
+        "padrao": ("restaurar|restaure|voltar|volte|retornar|retorne|ativar|ative|usar|use|colocar|coloque|iniciar|inicie", "padrão|padrao|modo padrão|modo padrao|sessão padrão|sessao padrao|modo normal|sessão normal|sessao normal|configuração padrão|configuracao padrao|perfil padrão|perfil padrao"),
+        "resfriar": ("ativar|ative|iniciar|inicie|ligar|ligue|usar|use|reduzir|reduza|baixar|baixe|diminuir|diminua", "resfriamento|modo frio|resfriar pc|esfriar pc|temperatura|temperatura do pc|calor do pc|calor|temperatura baixa|resfriamento do computador|modo de resfriamento|controle térmico|controle termico"),
+        "rede": ("mostrar|mostre|ver|veja|consultar|consulte|exibir|exiba|informar|informe|checar|verificar", "rede|status da rede|estado da rede|internet|status da internet|conexão|conexao|conexão de rede|conexao de rede|ip|ip local|gateway|tailscale"),
+    }
+    expanded = []
+    for script, aliases, response in script_commands:
+        verbs_targets = expansions.get(script)
+        if verbs_targets:
+            verbs, targets = (part.split("|") for part in verbs_targets)
+            generated = [normalize(f"{verb} {target}") for verb in verbs for target in targets]
+            aliases = sorted(set(aliases + generated))
+        expanded.append((script, aliases, response))
+    return expanded
+
+
 def interpret_command(text: str, now: datetime | None = None) -> CommandResult:
     command = normalize(text)
     command = re.sub(r"^(ei +)?jarvis\b", "", command).strip(" ,")
@@ -108,6 +135,7 @@ def interpret_command(text: str, now: datetime | None = None) -> CommandResult:
         ("resfriar", ["resfriar", "esfriar", "resfriar pc", "esfriar pc", "reduzir temperatura", "baixar temperatura", "reduzir calor", "modo frio"], "Reduzindo temperatura sem fechar aplicativos."),
         ("rede", ["rede", "status da rede", "status da internet", "ver minha rede", "internet", "conexão", "conexao"], "Mostrando status da rede."),
     ]
+    script_commands = expand_command_variations(script_commands)
     if any(verb in command for verb in ("desativ", "deslig", "parar", "pare", "encerrar", "fechar")) and any(word in command for word in ("monitor", "monitora")):
         return CommandResult("Encerrando monitor remoto.", [str(Path.home() / ".local/bin/parar3monitor")])
     for script, aliases, response in script_commands:

@@ -5,7 +5,7 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
-from jarvis import add_honorific, interpret_command
+from jarvis import add_honorific, expand_command_variations, interpret_command
 
 
 class CommandTests(unittest.TestCase):
@@ -36,6 +36,10 @@ class CommandTests(unittest.TestCase):
         response = interpret_command("o que você pode fazer").response
         for capability in ("performance", "autoclicker", "processos pesados", "resfriar o PC"):
             self.assertIn(capability, response)
+
+    def test_each_command_has_at_least_100_variations(self):
+        commands = expand_command_variations([("performace", [], ""), ("3monitor", [], ""), ("parar3monitor", [], ""), ("resfriar", [], "")])
+        self.assertTrue(all(len(aliases) >= 100 for _, aliases, _ in commands))
 
     def test_time(self):
         result = interpret_command("que horas são", datetime(2026, 8, 17, 16, 45))
