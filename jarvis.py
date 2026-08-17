@@ -41,7 +41,7 @@ FRAME_BYTES = FRAME_SAMPLES * 2
 WAKE_THRESHOLD = 0.30
 INPUT_GAIN = 1.60
 SILENCE_RMS = 110.0
-SILENCE_SECONDS = 0.35
+SILENCE_SECONDS = 0.25
 MAX_COMMAND_SECONDS = 9.0
 MIN_COMMAND_SECONDS = 0.5
 
@@ -280,7 +280,7 @@ class Jarvis:
             with wave.open(str(raw_path), "wb") as wav_file:
                 self.voice.synthesize_wav(text, wav_file)
             effect = (
-                "asetrate=22050*0.90,aresample=22050,atempo=1.666667,"
+                "asetrate=22050*0.90,aresample=22050,atempo=1.388889,"
                 "highpass=f=110,lowpass=f=6500,"
                 "chorus=0.6:0.8:15|22:0.32|0.22:0.30|0.22:1.8|2.2,"
                 "flanger=delay=2:depth=2:regen=20:width=45:speed=0.35,"
@@ -363,7 +363,7 @@ class Jarvis:
             language="pt",
             beam_size=1,
             vad_filter=True,
-            vad_parameters={"min_silence_duration_ms": 150, "speech_pad_ms": 160},
+            vad_parameters={"min_silence_duration_ms": 100, "speech_pad_ms": 160},
             condition_on_previous_text=False,
             initial_prompt="Jarvis.",
             hotwords="Jarvis Firefox Chrome terminal Codex Copilot",
