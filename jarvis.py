@@ -36,7 +36,7 @@ FRAME_SAMPLES = 1_280
 FRAME_BYTES = FRAME_SAMPLES * 2
 WAKE_THRESHOLD = 0.35
 SILENCE_RMS = 180.0
-SILENCE_SECONDS = 1.1
+SILENCE_SECONDS = 0.65
 MAX_COMMAND_SECONDS = 9.0
 MIN_COMMAND_SECONDS = 0.5
 
@@ -136,7 +136,7 @@ class AudioStream:
                 "--format=s16le",
                 f"--rate={SAMPLE_RATE}",
                 "--channels=1",
-                "--latency-msec=80",
+                "--latency-msec=30",
                 "--raw",
             ],
             stdout=subprocess.PIPE,
@@ -251,7 +251,7 @@ class Jarvis:
         segments, _ = self.whisper.transcribe(
             float_audio,
             language="pt",
-            beam_size=5,
+            beam_size=1,
             vad_filter=True,
             condition_on_previous_text=False,
             initial_prompt="Comando em português para Jarvis, assistente do computador.",
