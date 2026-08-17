@@ -96,11 +96,13 @@ def expand_command_variations(script_commands: list[tuple[str, list[str], str]])
     }
     expanded = []
     fillers = ("", "por favor", "senhor", "agora", "neste momento", "no computador", "aqui", "para mim", "por gentileza", "sem demora")
+    typo_fillers = ("por favo", "senho", "agoraa", "neste mometo", "no computado", "aki", "pra mim", "por gentilezaa", "sem demoro", "favor")
     for script, aliases, response in script_commands:
         verbs_targets = expansions.get(script)
         if verbs_targets:
             verbs, targets = (part.split("|") for part in verbs_targets)
             generated = [normalize(f"{filler} {verb} {target}") for filler in fillers for verb in verbs for target in targets]
+            generated += [normalize(f"{filler} {verb} {target}") for filler in typo_fillers for verb in verbs for target in targets]
             aliases = sorted(set(aliases + generated))
         expanded.append((script, aliases, response))
     return expanded
@@ -110,6 +112,12 @@ MEDIA_VARIATIONS = {
     normalize(f"{filler} {verb} {target}")
     for filler in ("", "por favor", "senhor", "agora", "neste momento", "no computador", "aqui", "para mim", "por gentileza", "sem demora")
     for verb in ("pause", "pausar", "pausa", "despause", "despausar", "continue", "continuar", "retome", "retomar", "toque", "tocar")
+    for target in ("a música", "a musica", "a mídia", "a midia", "o vídeo", "o video", "o som", "a reprodução", "a reproducao", "a faixa", "a transmissão", "a transmissao", "o conteúdo", "o conteudo", "o áudio", "o audio", "o stream")
+}
+MEDIA_ERROR_VARIATIONS = {
+    normalize(f"{filler} {verb} {target}")
+    for filler in ("", "por favo", "senho", "agoraa", "neste mometo", "aki", "pra mim", "sem demoro", "favor", "por gentilezaa")
+    for verb in ("pouse", "pousar", "pousa", "pousei", "pesar", "pozar", "pausar", "pausa", "pausei", "despouse", "despousar", "dispause", "dispausar", "despausa", "despausar", "retoma", "retomei", "continuar", "continaur", "tocaar")
     for target in ("a música", "a musica", "a mídia", "a midia", "o vídeo", "o video", "o som", "a reprodução", "a reproducao", "a faixa", "a transmissão", "a transmissao", "o conteúdo", "o conteudo", "o áudio", "o audio", "o stream")
 }
 
@@ -183,7 +191,7 @@ def interpret_command(text: str, now: datetime | None = None) -> CommandResult:
         return CommandResult("Diminuindo volume.", ["wpctl", "set-volume", "@DEFAULT_AUDIO_SINK@", "5%-"])
     if "silencie" in command or "mute" in command or "mudo" in command:
         return CommandResult("Alternando silêncio.", ["wpctl", "set-mute", "@DEFAULT_AUDIO_SINK@", "toggle"])
-    if any(variation in command for variation in MEDIA_VARIATIONS) or re.search(r"\b(pause|pausar|pausa|continue|continuar|despause|despausar|retome|retomar|toque|tocar)\b.*\b(m[iu]sica|m[ií]dia|video|vídeo|som|reprodu[cç][aã]o|midia)\b", command):
+    if any(variation in command for variation in MEDIA_VARIATIONS | MEDIA_ERROR_VARIATIONS) or re.search(r"\b(pause|pausar|pausa|continue|continuar|despause|despausar|retome|retomar|toque|tocar)\b.*\b(m[iu]sica|m[ií]dia|video|vídeo|som|reprodu[cç][aã]o|midia)\b", command):
         return CommandResult("Controlando reprodução.", ["playerctl", "play-pause"])
     if command in {"pause", "pausar", "pausa", "continue", "continuar", "despause", "despausar", "retome", "retomar"}:
         return CommandResult("Controlando reprodução.", ["playerctl", "play-pause"])
