@@ -25,6 +25,8 @@ class CommandTests(unittest.TestCase):
     def test_extra_commands(self):
         self.assertEqual(interpret_command("mostre meu ip local").response, "Mostrando IP local.")
         self.assertEqual(interpret_command("por favor abra o GitHub").response, "Abrindo GitHub.")
+        self.assertEqual(interpret_command("mostre os logs do Jarvis").response, "Mostrando logs do Jarvis.")
+        self.assertEqual(interpret_command("reinicie o Jarvis").response, "Reiniciando Jarvis.")
 
     def test_dashboard_commands_variations(self):
         self.assertEqual(interpret_command("ative o modo desempenho").action[-1], "/home/lucas/.local/bin/performace")

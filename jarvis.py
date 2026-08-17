@@ -173,14 +173,33 @@ EXTRA_COMMAND_SPECS = [
     ("proxima musica", "playerctl next", "Próxima música."),
     ("musica anterior", "playerctl previous", "Música anterior."),
     ("mostrar processos memoria", "ps -eo pid,comm,%mem --sort=-%mem | head -15", "Mostrando processos por memória."),
+    ("mostrar gateway", "ip route | head -5", "Mostrando gateway."),
+    ("mostrar dns", "resolvectl status | sed -n '1,35p'", "Mostrando DNS."),
+    ("mostrar interfaces de rede", "ip -brief link", "Mostrando interfaces de rede."),
+    ("mostrar conexoes de rede", "ss -tuln", "Mostrando conexões de rede."),
+    ("listar dispositivos usb", "lsusb", "Listando dispositivos USB."),
+    ("listar dispositivos pci", "lspci", "Listando dispositivos PCI."),
+    ("mostrar audio", "wpctl status", "Mostrando dispositivos de áudio."),
+    ("mostrar bluetooth", "bluetoothctl devices", "Mostrando dispositivos Bluetooth."),
+    ("mostrar bateria", "upower -i $(upower -e | grep BAT | head -1)", "Mostrando bateria."),
+    ("abrir configuracoes", "systemsettings", "Abrindo configurações."),
+    ("abrir gerenciador de processos", "ksysguard", "Abrindo gerenciador de processos."),
+    ("abrir monitor do sistema", "missioncenter", "Abrindo monitor do sistema."),
+    ("abrir documentos", "dolphin $HOME/Documentos", "Abrindo Documentos."),
+    ("abrir imagens", "dolphin $HOME/Imagens", "Abrindo Imagens."),
+    ("abrir projetos", "dolphin $HOME/Documentos/projetos", "Abrindo Projetos."),
+    ("mostrar servicos ativos", "systemctl --user --type=service --state=running", "Mostrando serviços ativos."),
+    ("mostrar servicos falhos", "systemctl --user --failed", "Mostrando serviços falhos."),
+    ("mostrar logs do jarvis", "journalctl --user -u jarvis.service -n 40 --no-pager", "Mostrando logs do Jarvis."),
+    ("reiniciar jarvis", "systemctl --user restart jarvis.service", "Reiniciando Jarvis."),
 ]
 EXTRA_FILLERS = ("", "por favor", "senhor", "agora", "rapidamente", "neste momento", "no computador", "aqui", "para mim", "sem demora")
-EXTRA_VERBS = ("mostrar", "mostre", "mostra", "ver", "veja", "exibir", "exiba", "consultar", "consulte", "abrir", "abra", "iniciar", "inicie", "executar", "execute", "fazer", "faça", "rodar", "rode", "testar", "teste", "testa", "me diga", "diga")
+EXTRA_VERBS = ("mostrar", "mostre", "mostra", "ver", "veja", "exibir", "exiba", "consultar", "consulte", "abrir", "abra", "iniciar", "inicie", "iniciar", "reiniciar", "reinicie", "executar", "execute", "fazer", "faça", "rodar", "rode", "testar", "teste", "testa", "me diga", "diga")
 
 def extra_command_result(command: str) -> CommandResult | None:
     matches = []
     for phrase, shell, response in EXTRA_COMMAND_SPECS:
-        target = re.sub(r"^(mostrar|abrir|testar|executar|rodar)\s+", "", phrase)
+        target = re.sub(r"^(mostrar|abrir|testar|executar|rodar|reiniciar)\s+", "", phrase)
         if re.search(rf"(?<!\w){re.escape(target)}(?!\w)", command):
             matches.append((len(target.split()), len(target), shell, response))
     if not matches:
