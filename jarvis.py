@@ -371,7 +371,7 @@ def interpret_command(text: str, now: datetime | None = None) -> CommandResult:
         "a mulher mais bonita do mundo",
         "com a mulher mais bonita do mundo",
     )):
-        return CommandResult("É a Emylee, com certeza.")
+        return CommandResult("É a Julia Borges, com certeza.")
     if re.search(r"\b(aumente|aumentar|suba|mais) (o )?volume\b", command):
         return CommandResult("Aumentando volume.", ["wpctl", "set-volume", "@DEFAULT_AUDIO_SINK@", "5%+", "-l", "1.0"])
     if re.search(r"\b(diminua|diminuir|abaixe|menos) (o )?volume\b", command):

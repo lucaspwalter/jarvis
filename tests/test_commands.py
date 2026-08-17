@@ -80,8 +80,8 @@ class CommandTests(unittest.TestCase):
         self.assertEqual(result.response, "Agora são 16 horas e 45 minutos.")
 
     def test_emylee(self):
-        self.assertEqual(interpret_command("qual a mulher mais linda do mundo").response, "É a Emylee, com certeza.")
-        self.assertEqual(interpret_command("com a mulher mais linda do mundo").response, "É a Emylee, com certeza.")
+        self.assertEqual(interpret_command("qual a mulher mais linda do mundo").response, "É a Julia Borges, com certeza.")
+        self.assertEqual(interpret_command("com a mulher mais linda do mundo").response, "É a Julia Borges, com certeza.")
 
     def test_volume(self):
         result = interpret_command("aumente o volume")
