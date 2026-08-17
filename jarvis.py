@@ -93,6 +93,24 @@ def interpret_command(text: str, now: datetime | None = None) -> CommandResult:
         if re.search(rf"\b({open_verbs}) (o )?{re.escape(name)}\b", command) or command == name:
             return CommandResult(f"Abrindo {name}.", executable)
 
+    script_commands = [
+        ("resfriar normal", ["resfriar normal", "resfriar normalmente", "temperatura normal", "restaurar limites", "limites originais"], "Restaurando limites originais."),
+        ("performace", ["performance", "performace", "modo desempenho", "modo performance", "preparar pc para jogar", "pc para jogar", "modo jogo"], "Preparando o PC para jogar."),
+        ("atualizarlayout", ["atualizar layout", "atualize o layout", "sincronizar configurações", "sincronizar configuracoes", "recarregar configurações", "recarregar configuracoes"], "Sincronizando configurações."),
+        ("3monitor", ["3 monitor", "três monitor", "tres monitor", "três monitores", "tres monitores", "notebook como monitor", "ativar monitor"], "Ativando notebook como monitor."),
+        ("pc-remoto", ["pc remoto", "pc-remoto", "acesso remoto", "abrir pc remoto", "abrir pc no notebook", "conectar ao pc"], "Abrindo PC remoto."),
+        ("autoclicker", ["autoclicker", "auto clicker", "auto clique", "cliques automáticos", "cliques automaticos", "iniciar cliques"], "Iniciando cliques automáticos."),
+        ("consumo", ["consumo", "consumo do pc", "status do pc", "cpu ram", "cpu e ram", "temperatura do pc", "recursos do pc"], "Mostrando consumo do PC."),
+        ("notebook", ["notebook", "abrir notebook", "conectar notebook", "ssh notebook", "acessar notebook"], "Abrindo conexão com notebook."),
+        ("parar3monitor", ["parar 3 monitor", "parar três monitor", "parar tres monitor", "parar monitores", "encerrar moonlight", "fechar moonlight", "desligar monitor remoto"], "Encerrando monitor remoto."),
+        ("pesados", ["pesados", "processos pesados", "programas pesados", "processos que mais usam", "ver processos"], "Mostrando processos pesados."),
+        ("padrao", ["padrão", "padrao", "modo padrão", "modo padrao", "sessão padrão", "sessao padrao", "restaurar sessão", "restaurar sessao", "modo normal"], "Restaurando sessão padrão."),
+        ("resfriar", ["resfriar", "esfriar", "resfriar pc", "esfriar pc", "reduzir temperatura", "baixar temperatura", "reduzir calor", "modo frio"], "Reduzindo temperatura sem fechar aplicativos."),
+    ]
+    for script, aliases, response in script_commands:
+        if any(alias in command for alias in aliases):
+            return CommandResult(response, [str(Path.home() / ".local/bin" / script)])
+
     if "que horas" in command or command == "horas":
         return CommandResult(f"Agora são {now:%H} horas e {now:%M} minutos.")
     if "que dia" in command or "qual a data" in command or command == "data":

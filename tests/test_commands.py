@@ -21,6 +21,12 @@ class CommandTests(unittest.TestCase):
         self.assertEqual(interpret_command("abri o terminal").action, ["kitty"])
         self.assertEqual(interpret_command("abre fadi fox").action, ["firefox"])
 
+    def test_dashboard_commands_variations(self):
+        self.assertEqual(interpret_command("ative o modo desempenho").action[-1], "/home/lucas/.local/bin/performace")
+        self.assertEqual(interpret_command("mostre os processos pesados").action[-1], "/home/lucas/.local/bin/pesados")
+        self.assertEqual(interpret_command("conecte ao notebook").action[-1], "/home/lucas/.local/bin/notebook")
+        self.assertEqual(interpret_command("abra o pc remoto").action[-1], "/home/lucas/.local/bin/pc-remoto")
+
     def test_time(self):
         result = interpret_command("que horas são", datetime(2026, 8, 17, 16, 45))
         self.assertEqual(result.response, "Agora são 16 horas e 45 minutos.")
