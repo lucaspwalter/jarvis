@@ -79,6 +79,9 @@ class CommandTests(unittest.TestCase):
         result = interpret_command("que horas são", datetime(2026, 8, 17, 16, 45))
         self.assertEqual(result.response, "Agora são 16 horas e 45 minutos.")
 
+    def test_emylee(self):
+        self.assertEqual(interpret_command("qual a mulher mais linda do mundo").response, "Emylee.")
+
     def test_volume(self):
         result = interpret_command("aumente o volume")
         self.assertEqual(result.action[:2], ["wpctl", "set-volume"])

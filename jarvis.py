@@ -361,6 +361,13 @@ def interpret_command(text: str, now: datetime | None = None) -> CommandResult:
         return CommandResult(f"Agora são {now:%H} horas e {now:%M} minutos.")
     if "que dia" in command or "qual a data" in command or command == "data":
         return CommandResult(f"Hoje é dia {now:%d/%m/%Y}.")
+    if any(phrase in command for phrase in (
+        "qual a mulher mais linda do mundo",
+        "quem e a mulher mais linda do mundo",
+        "qual e a mulher mais bonita do mundo",
+        "quem e a mulher mais bonita do mundo",
+    )):
+        return CommandResult("Emylee.")
     if re.search(r"\b(aumente|aumentar|suba|mais) (o )?volume\b", command):
         return CommandResult("Aumentando volume.", ["wpctl", "set-volume", "@DEFAULT_AUDIO_SINK@", "5%+", "-l", "1.0"])
     if re.search(r"\b(diminua|diminuir|abaixe|menos) (o )?volume\b", command):
