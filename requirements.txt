@@ -1,0 +1,6 @@
+faster-whisper==1.2.1
+openwakeword==0.6.0
+piper-tts==1.6.0
+requests==2.34.2
+scikit-learn==1.9.0
+scipy==1.18.0
