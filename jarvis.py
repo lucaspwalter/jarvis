@@ -370,6 +370,11 @@ def interpret_command(text: str, now: datetime | None = None) -> CommandResult:
         "com a mulher mais linda do mundo",
         "a mulher mais bonita do mundo",
         "com a mulher mais bonita do mundo",
+        "qual a mulher mais chata do mundo",
+        "quem e a mulher mais chata do mundo",
+        "qual e a mulher mais chata do mundo",
+        "a mulher mais chata do mundo",
+        "com a mulher mais chata do mundo",
     )):
         return CommandResult("É a Julia Borges, com certeza.")
     if re.search(r"\b(aumente|aumentar|suba|mais) (o )?volume\b", command):
