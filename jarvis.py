@@ -271,8 +271,7 @@ class Jarvis:
             if "echo-cancel-playback" in block or "Echo-Cancel Playback" in block:
                 continue
             stream_id = match_id.group(1)
-            volume = subprocess.run(["pactl", "get-sink-input-volume", stream_id], capture_output=True, text=True, check=False)
-            match = re.search(r"(\d+)%", volume.stdout)
+            match = re.search(r"\n\s+Volume:.*?(\d+)%", block, flags=re.DOTALL)
             if not match:
                 continue
             saved.append((stream_id, match.group(1)))
