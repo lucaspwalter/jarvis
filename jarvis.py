@@ -95,14 +95,23 @@ def expand_command_variations(script_commands: list[tuple[str, list[str], str]])
         "rede": ("mostrar|mostre|ver|veja|consultar|consulte|exibir|exiba|informar|informe|checar|verificar", "rede|status da rede|estado da rede|internet|status da internet|conexão|conexao|conexão de rede|conexao de rede|ip|ip local|gateway|tailscale"),
     }
     expanded = []
+    fillers = ("", "por favor", "senhor", "agora", "neste momento", "no computador", "aqui", "para mim", "por gentileza", "sem demora")
     for script, aliases, response in script_commands:
         verbs_targets = expansions.get(script)
         if verbs_targets:
             verbs, targets = (part.split("|") for part in verbs_targets)
-            generated = [normalize(f"{verb} {target}") for verb in verbs for target in targets]
+            generated = [normalize(f"{filler} {verb} {target}") for filler in fillers for verb in verbs for target in targets]
             aliases = sorted(set(aliases + generated))
         expanded.append((script, aliases, response))
     return expanded
+
+
+MEDIA_VARIATIONS = {
+    normalize(f"{filler} {verb} {target}")
+    for filler in ("", "por favor", "senhor", "agora", "neste momento", "no computador", "aqui", "para mim", "por gentileza", "sem demora")
+    for verb in ("pause", "pausar", "pausa", "despause", "despausar", "continue", "continuar", "retome", "retomar", "toque", "tocar")
+    for target in ("a música", "a musica", "a mídia", "a midia", "o vídeo", "o video", "o som", "a reprodução", "a reproducao", "a faixa", "a transmissão", "a transmissao", "o conteúdo", "o conteudo", "o áudio", "o audio", "o stream")
+}
 
 
 def interpret_command(text: str, now: datetime | None = None) -> CommandResult:
@@ -110,6 +119,8 @@ def interpret_command(text: str, now: datetime | None = None) -> CommandResult:
     command = re.sub(r"^(ei +)?jarvis\b", "", command).strip(" ,")
     command = re.sub(r"\bdesat(?:ive|iva|ivar|ime)\b", "desative", command)
     command = re.sub(r"\bdespousar\b", "despausar", command)
+    command = re.sub(r"\bpalos\b", "pause", command)
+    command = re.sub(r"\bamidia\b", "midia", command)
     command = command.replace("fadi fox", "firefox").replace("fe de foco", "firefox").replace("grom", "chrome")
     now = now or datetime.now()
 
@@ -145,9 +156,14 @@ def interpret_command(text: str, now: datetime | None = None) -> CommandResult:
     script_commands = expand_command_variations(script_commands)
     if any(verb in command for verb in ("desativ", "deslig", "parar", "pare", "encerrar", "fechar")) and any(word in command for word in ("monitor", "monitora")):
         return CommandResult("Encerrando monitor remoto.", [str(Path.home() / ".local/bin/parar3monitor")])
+    matches = []
     for script, aliases, response in script_commands:
-        if any(alias in command for alias in aliases):
-            return CommandResult(response, [str(Path.home() / ".local/bin" / script)])
+        for alias in aliases:
+            if alias and alias in command:
+                matches.append((len(alias.split()), len(alias), script, response))
+    if matches:
+        _, _, script, response = max(matches)
+        return CommandResult(response, [str(Path.home() / ".local/bin" / script)])
 
     if any(alias in command for alias in ("codex", "abrir codex", "iniciar codex", "abrir o codex")):
         return CommandResult("Abrindo Codex.", ["kitty", "-e", "codex"])
@@ -164,7 +180,7 @@ def interpret_command(text: str, now: datetime | None = None) -> CommandResult:
         return CommandResult("Diminuindo volume.", ["wpctl", "set-volume", "@DEFAULT_AUDIO_SINK@", "5%-"])
     if "silencie" in command or "mute" in command or "mudo" in command:
         return CommandResult("Alternando silêncio.", ["wpctl", "set-mute", "@DEFAULT_AUDIO_SINK@", "toggle"])
-    if re.search(r"\b(pause|pausar|pausa|continue|continuar|despause|despausar|retome|retomar|toque|tocar)\b.*\b(m[iu]sica|m[ií]dia|video|vídeo|som|reprodu[cç][aã]o)\b", command):
+    if any(variation in command for variation in MEDIA_VARIATIONS) or re.search(r"\b(pause|pausar|pausa|continue|continuar|despause|despausar|retome|retomar|toque|tocar)\b.*\b(m[iu]sica|m[ií]dia|video|vídeo|som|reprodu[cç][aã]o|midia)\b", command):
         return CommandResult("Controlando reprodução.", ["playerctl", "play-pause"])
     if command in {"pause", "pausar", "pausa", "continue", "continuar", "despause", "despausar", "retome", "retomar"}:
         return CommandResult("Controlando reprodução.", ["playerctl", "play-pause"])
