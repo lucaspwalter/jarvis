@@ -259,6 +259,28 @@ class Jarvis:
         subprocess.run(["pkill", "-RTMIN+8", "waybar"], check=False)
 
     @staticmethod
+    def duck_app_audio() -> list[tuple[str, str]]:
+        result = subprocess.run(["pactl", "list", "short", "sink-inputs"], capture_output=True, text=True, check=False)
+        saved: list[tuple[str, str]] = []
+        for line in result.stdout.splitlines():
+            fields = line.split()
+            if not fields:
+                continue
+            stream_id = fields[0]
+            volume = subprocess.run(["pactl", "get-sink-input-volume", stream_id], capture_output=True, text=True, check=False)
+            match = re.search(r"(\d+)%", volume.stdout)
+            if not match:
+                continue
+            saved.append((stream_id, match.group(1)))
+            subprocess.run(["pactl", "set-sink-input-volume", stream_id, "0%"], check=False)
+        return saved
+
+    @staticmethod
+    def restore_app_audio(saved: list[tuple[str, str]]) -> None:
+        for stream_id, volume in saved:
+            subprocess.run(["pactl", "set-sink-input-volume", stream_id, f"{volume}%"], check=False)
+
+    @staticmethod
     def record_command(stream: AudioStream, prefix: list[np.ndarray]) -> np.ndarray:
         frames = list(prefix)
         silent_frames = 0
@@ -322,17 +344,21 @@ class Jarvis:
                     if score < WAKE_THRESHOLD:
                         continue
                     LOG.info("Ativação detectada. score=%.3f", score)
-                    self.set_listening(True)
+                    ducked_audio = self.duck_app_audio()
                     try:
-                        audio = self.record_command(stream, list(pre_roll))
+                        self.set_listening(True)
+                        try:
+                            audio = self.record_command(stream, list(pre_roll))
+                        finally:
+                            self.set_listening(False)
+                        stream.close()
+                        text = self.transcribe(audio)
+                        if text:
+                            self.execute(text)
+                        else:
+                            self.speak("Não entendi o comando.")
                     finally:
-                        self.set_listening(False)
-                    stream.close()
-                    text = self.transcribe(audio)
-                    if text:
-                        self.execute(text)
-                    else:
-                        self.speak("Não entendi o comando.")
+                        self.restore_app_audio(ducked_audio)
                     time.sleep(0.1)
                     break
             finally:
