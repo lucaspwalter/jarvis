@@ -526,7 +526,7 @@ class Jarvis:
                             LOG.info("Ativação ignorada: nenhum comando audível.")
                     finally:
                         self.restore_app_audio(ducked_audio)
-                    time.sleep(2.0)
+                    time.sleep(0.5)
                     break
             finally:
                 stream.close()
