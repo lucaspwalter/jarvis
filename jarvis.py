@@ -118,7 +118,7 @@ def interpret_command(text: str, now: datetime | None = None) -> CommandResult:
     }
     open_verbs = r"abra|abre|abrir|abri|inicie|iniciar|inicia|execute|executa|rode|rodar"
     for name, executable in applications.items():
-        if re.search(rf"\b({open_verbs}) (o )?{re.escape(name)}\b", command) or command == name:
+        if re.search(rf"\b({open_verbs}) (o )?{re.escape(name)}\b", command) or command == name or (name in command and len(command.split()) <= 4):
             return CommandResult(f"Abrindo {name}.", executable)
 
     script_commands = [
@@ -360,8 +360,8 @@ class Jarvis:
             vad_filter=True,
             vad_parameters={"min_silence_duration_ms": 250, "speech_pad_ms": 220},
             condition_on_previous_text=False,
-            initial_prompt="Comandos em português: Jarvis, que horas são? Jarvis, abra o terminal. Jarvis, ative o terceiro monitor.",
-            hotwords="Jarvis que horas são abra abrir ative desative terceiro monitor terminal Firefox Chrome Codex volume",
+            initial_prompt="Jarvis.",
+            hotwords="Jarvis Firefox Chrome terminal Codex Copilot",
             temperature=0.0,
             without_timestamps=True,
         )
