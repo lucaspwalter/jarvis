@@ -122,22 +122,30 @@ MEDIA_ERROR_VARIATIONS = {
     for target in ("a música", "a musica", "a mídia", "a midia", "o vídeo", "o video", "o som", "a reprodução", "a reproducao", "a faixa", "a transmissão", "a transmissao", "o conteúdo", "o conteudo", "o áudio", "o audio", "o stream")
 }
 CODEX_WRITE_VARIATIONS = {
-    normalize(f"{filler} {verb} {target}")
-    for filler in ("", "por favor", "senhor", "agora", "rapidamente", "neste momento", "para mim", "por gentileza", "sem demora", "no terminal")
-    for verb in ("escreva", "escrever", "escreve", "digite", "digitar", "digita", "coloque", "colocar", "insira", "inserir", "mande", "mandar", "envie", "enviar", "transcreva", "transcrever", "redija", "redigir", "coloque texto", "digite texto")
-    for target in ("no codex", "no Codex", "para o codex", "no terminal do codex", "na janela do codex", "na sessão do codex", "na sessao do codex")
+    normalize(f"{filler} {phrase} {suffix}")
+    for filler in ("", "por favor", "senhor", "agora", "rapidamente", "neste momento", "para mim", "por gentileza", "sem demora")
+    for phrase in ("digite para mim", "digita para mim", "digitar para mim", "pode digitar para mim", "escreva para mim", "escreve para mim", "escrever para mim")
+    for suffix in ("", "agora", "por favor", "senhor", "para mim", "no computador", "neste momento", "sem demora", "por gentileza", "rapidamente", "aí", "ai", "aqui", "neste instante", "quando puder", "se puder", "por gentileza senhor", "agora senhor", "para mim agora", "no terminal", "no computador agora")
 }
 
 
-def interpret_command(text: str, now: datetime | None = None) -> CommandResult:
-    write_match = re.search(
-        r"\b(?:escreva|escrever|escreve|digite|digitar|digita|coloque|colocar|insira|inserir|mande|mandar|envie|enviar|transcreva|transcrever)\s+"
-        r"(?:no|na|para o|para a)\s+codex\s*[:,;-]?\s*(.+)$",
+def codex_write_payload(text: str) -> str | None:
+    match = re.search(
+        r"\b(?:digite|digitar|digita|escreva|escrever|escreve)\s+para\s+mim\s*[:,;-]?\s*(.+)$",
         text,
         flags=re.IGNORECASE,
     )
-    if write_match and write_match.group(1).strip():
-        return CommandResult("Escrevendo no Codex.", [str(BASE_DIR / "write_codex.py"), write_match.group(1).strip()])
+    return match.group(1).strip() if match and match.group(1).strip() else None
+
+
+def is_codex_write_request(text: str) -> bool:
+    return bool(re.search(r"\b(?:digite|digitar|digita|escreva|escrever|escreve)\s+para\s+mim\b", text, flags=re.IGNORECASE))
+
+
+def interpret_command(text: str, now: datetime | None = None) -> CommandResult:
+    payload = codex_write_payload(text)
+    if payload:
+        return CommandResult("Digitando.", [str(BASE_DIR / "write_codex.py"), payload])
     command = normalize(text)
     command = re.sub(r"^(ei +)?jarvis\b", "", command).strip(" ,")
     command = re.sub(r"\bdesat(?:ive|iva|ivar|ime)\b", "desative", command)
@@ -462,7 +470,23 @@ class Jarvis:
                         stream.close()
                         text = self.transcribe(audio)
                         if text:
-                            self.execute(text)
+                            if is_codex_write_request(text) and codex_write_payload(text) is None:
+                                self.speak("Pode ditar.")
+                                time.sleep(0.2)
+                                dictation_stream = AudioStream()
+                                try:
+                                    self.set_listening(True)
+                                    dictated_audio = self.record_command(dictation_stream, [])
+                                finally:
+                                    self.set_listening(False)
+                                    dictation_stream.close()
+                                dictated_text = self.transcribe(dictated_audio)
+                                if dictated_text:
+                                    self.execute(f"digite para mim: {dictated_text}")
+                                else:
+                                    self.speak("Não entendi. Diga novamente.")
+                            else:
+                                self.execute(text)
                         else:
                             self.speak("Não entendi o comando.")
                     finally:

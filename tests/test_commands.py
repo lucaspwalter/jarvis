@@ -5,7 +5,7 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
-from jarvis import CODEX_WRITE_VARIATIONS, MEDIA_ERROR_VARIATIONS, MEDIA_VARIATIONS, add_honorific, enhance_command_audio, expand_command_variations, interpret_command
+from jarvis import CODEX_WRITE_VARIATIONS, MEDIA_ERROR_VARIATIONS, MEDIA_VARIATIONS, add_honorific, codex_write_payload, enhance_command_audio, expand_command_variations, interpret_command, is_codex_write_request
 
 
 class CommandTests(unittest.TestCase):
@@ -47,9 +47,11 @@ class CommandTests(unittest.TestCase):
         self.assertGreaterEqual(len(CODEX_WRITE_VARIATIONS), 1000)
 
     def test_write_into_existing_codex(self):
-        result = interpret_command("Jarvis, escreva no Codex: abra o terminal amanhã")
+        result = interpret_command("Jarvis, digite para mim: abra o terminal amanhã")
         self.assertEqual(result.action[0].endswith("write_codex.py"), True)
         self.assertEqual(result.action[1], "abra o terminal amanhã")
+        self.assertTrue(is_codex_write_request("Jarvis, digite para mim"))
+        self.assertIsNone(codex_write_payload("Jarvis, digite para mim"))
 
     def test_audio_enhancement_preserves_shape(self):
         import numpy as np
