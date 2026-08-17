@@ -22,6 +22,7 @@ import numpy as np
 from faster_whisper import WhisperModel
 from openwakeword.model import Model as WakeWordModel
 from piper.voice import PiperVoice
+from scipy.signal import butter, sosfilt
 
 
 BASE_DIR = Path(__file__).resolve().parent
@@ -227,6 +228,19 @@ class AudioStream:
                 self.process.wait()
 
 
+def enhance_command_audio(audio: np.ndarray) -> np.ndarray:
+    """Keep speech band and normalize quiet far-field commands before Whisper."""
+    if audio.size < 32:
+        return audio
+    samples = audio.astype(np.float32)
+    sos = butter(4, [80, 6800], btype="bandpass", fs=SAMPLE_RATE, output="sos")
+    filtered = sosfilt(sos, samples)
+    rms = float(np.sqrt(np.mean(filtered * filtered)))
+    if rms > 0:
+        filtered *= min(1.8, 5000.0 / rms)
+    return np.clip(filtered, -32768, 32767).astype(np.int16)
+
+
 class Jarvis:
     def __init__(self) -> None:
         wake_model = WAKE_MODELS_DIR / "hey_jarvis_v0.1.onnx"
@@ -337,6 +351,7 @@ class Jarvis:
         return np.concatenate(frames) if frames else np.empty(0, dtype=np.int16)
 
     def transcribe(self, audio: np.ndarray) -> str:
+        audio = enhance_command_audio(audio)
         float_audio = audio.astype(np.float32) / 32768.0
         segments, _ = self.whisper.transcribe(
             float_audio,

@@ -5,7 +5,7 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
-from jarvis import add_honorific, expand_command_variations, interpret_command
+from jarvis import add_honorific, enhance_command_audio, expand_command_variations, interpret_command
 
 
 class CommandTests(unittest.TestCase):
@@ -40,6 +40,12 @@ class CommandTests(unittest.TestCase):
     def test_each_command_has_at_least_100_variations(self):
         commands = expand_command_variations([("performace", [], ""), ("3monitor", [], ""), ("parar3monitor", [], ""), ("resfriar", [], "")])
         self.assertTrue(all(len(aliases) >= 100 for _, aliases, _ in commands))
+
+    def test_audio_enhancement_preserves_shape(self):
+        import numpy as np
+        audio = np.zeros(1600, dtype=np.int16)
+        enhanced = enhance_command_audio(audio)
+        self.assertEqual(enhanced.shape, audio.shape)
 
     def test_time(self):
         result = interpret_command("que horas são", datetime(2026, 8, 17, 16, 45))
