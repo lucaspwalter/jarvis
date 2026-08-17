@@ -204,10 +204,14 @@ def interpret_command(text: str, now: datetime | None = None) -> CommandResult:
     matches = []
     for script, aliases, response in script_commands:
         for alias in aliases:
-            if alias and alias in command:
+            if alias and re.search(rf"(?<!\w){re.escape(alias)}(?!\w)", command):
                 matches.append((len(alias.split()), len(alias), script, response))
     if matches:
-        _, _, script, response = max(matches)
+        best_score = max((words, chars) for words, chars, _, _ in matches)
+        best = [(script, response) for words, chars, script, response in matches if (words, chars) == best_score]
+        if len({script for script, _ in best}) > 1:
+            return CommandResult("Comando ambíguo. Diga novamente.")
+        script, response = best[0]
         return CommandResult(response, [str(Path.home() / ".local/bin" / script)])
 
     if any(alias in command for alias in ("codex", "abrir codex", "iniciar codex", "abrir o codex")):
