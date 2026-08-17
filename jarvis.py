@@ -38,8 +38,8 @@ AUDIO_SOURCE = "jarvis_mic"
 SAMPLE_RATE = 16_000
 FRAME_SAMPLES = 1_280
 FRAME_BYTES = FRAME_SAMPLES * 2
-WAKE_THRESHOLD = 0.15
-WAKE_CONFIRM_FRAMES = 2
+WAKE_THRESHOLD = 0.28
+WAKE_CONFIRM_FRAMES = 3
 INPUT_GAIN = 1.60
 SILENCE_RMS = 110.0
 SILENCE_SECONDS = 0.12
@@ -486,7 +486,7 @@ class Jarvis:
                         finally:
                             self.set_listening(False)
                         text = self.transcribe(audio)
-                        if text:
+                        if text and normalize(re.sub(r"^(ei +)?jarvis\b", "", text, flags=re.IGNORECASE)).strip(" ,."):
                             if is_codex_write_request(text) and codex_write_payload(text) is None:
                                 self.speak("Pode ditar.")
                                 time.sleep(0.2)
@@ -504,7 +504,7 @@ class Jarvis:
                             else:
                                 self.execute(text)
                         else:
-                            self.speak("Não entendi o comando.")
+                            LOG.info("Ativação ignorada: nenhum comando audível.")
                     finally:
                         self.restore_app_audio(ducked_audio)
                     time.sleep(2.0)
