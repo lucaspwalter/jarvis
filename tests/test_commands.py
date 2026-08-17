@@ -29,6 +29,8 @@ class CommandTests(unittest.TestCase):
         self.assertEqual(interpret_command("reinicie o Jarvis").response, "Reiniciando Jarvis.")
         self.assertEqual(interpret_command("execute os testes").response, "Executando testes.")
         self.assertEqual(interpret_command("mostre os commits").response, "Mostrando commits.")
+        self.assertEqual(interpret_command("abra o Steam").response, "Abrindo Steam.")
+        self.assertEqual(interpret_command("silencie o microfone").response, "Silenciando microfone.")
 
     def test_dashboard_commands_variations(self):
         self.assertEqual(interpret_command("ative o modo desempenho").action[-1], "/home/lucas/.local/bin/performace")

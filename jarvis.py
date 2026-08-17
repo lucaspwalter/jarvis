@@ -212,15 +212,40 @@ EXTRA_COMMAND_SPECS = [
     ("suspender computador", "systemctl suspend", "Suspendendo computador."),
     ("reiniciar computador", "systemctl reboot", "Reiniciando computador."),
     ("desligar computador", "systemctl poweroff", "Desligando computador."),
+    ("abrir spotify", "spotify", "Abrindo Spotify."),
+    ("abrir steam", "steam", "Abrindo Steam."),
+    ("abrir prism launcher", "prismlauncher", "Abrindo PrismLauncher."),
+    ("abrir retroarch", "retroarch", "Abrindo RetroArch."),
+    ("abrir controle de audio", "pavucontrol", "Abrindo controle de áudio."),
+    ("mostrar telas", "hyprctl monitors all", "Mostrando telas."),
+    ("mostrar clipboard", "wl-paste", "Mostrando clipboard."),
+    ("copiar clipboard", "wl-copy", "Clipboard pronto para receber texto."),
+    ("silenciar microfone", "pactl set-source-mute jarvis_mic 1", "Silenciando microfone."),
+    ("ativar microfone", "pactl set-source-mute jarvis_mic 0", "Ativando microfone."),
+    ("mostrar volume do microfone", "pactl get-source-volume jarvis_mic", "Mostrando volume do microfone."),
+    ("microfone cem por cento", "pactl set-source-volume jarvis_mic 100%", "Microfone em 100 por cento."),
+    ("microfone oitenta por cento", "pactl set-source-volume jarvis_mic 80%", "Microfone em 80 por cento."),
+    ("microfone vinte por cento", "pactl set-source-volume jarvis_mic 20%", "Microfone em 20 por cento."),
+    ("capturar area da tela", "grim -g \"$(slurp)\" $HOME/Imagens/area-$(date +%Y%m%d-%H%M%S).png", "Capturando área da tela."),
+    ("gravar tela", "wf-recorder -f $HOME/Vídeos/gravação-$(date +%Y%m%d-%H%M%S).mp4", "Gravando tela."),
+    ("parar gravacao", "pkill -INT wf-recorder", "Parando gravação."),
+    ("mostrar calendario", "cal -3", "Mostrando calendário."),
+    ("mostrar data", "date", "Mostrando data."),
+    ("mostrar relogio", "date '+%H:%M:%S'", "Mostrando relógio."),
 ]
 EXTRA_FILLERS = ("", "por favor", "senhor", "agora", "rapidamente", "neste momento", "no computador", "aqui", "para mim", "sem demora")
 EXTRA_VERBS = ("mostrar", "mostre", "mostra", "ver", "veja", "exibir", "exiba", "consultar", "consulte", "abrir", "abra", "iniciar", "inicie", "iniciar", "reiniciar", "reinicie", "executar", "execute", "fazer", "faça", "rodar", "rode", "testar", "teste", "testa", "me diga", "diga")
 
 def extra_command_result(command: str) -> CommandResult | None:
     matches = []
+    targets = [re.sub(r"^(mostrar|abrir|testar|executar|rodar|reiniciar|silenciar|ativar|capturar|gravar|parar)\s+", "", phrase) for phrase, _, _ in EXTRA_COMMAND_SPECS]
     for phrase, shell, response in EXTRA_COMMAND_SPECS:
-        target = re.sub(r"^(mostrar|abrir|testar|executar|rodar|reiniciar)\s+", "", phrase)
-        if re.search(rf"(?<!\w){re.escape(target)}(?!\w)", command):
+        target = re.sub(r"^(mostrar|abrir|testar|executar|rodar|reiniciar|silenciar|ativar|capturar|gravar|parar)\s+", "", phrase)
+        verb = phrase.split()[0]
+        stem = verb[: max(3, len(verb) - 2)]
+        target_match = re.search(rf"(?<!\w){re.escape(target)}(?!\w)", command)
+        verb_match = re.search(rf"\b{re.escape(stem)}", command)
+        if target_match and (targets.count(target) == 1 or verb_match):
             matches.append((len(target.split()), len(target), shell, response))
     if not matches:
         return None
