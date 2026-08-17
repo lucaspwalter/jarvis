@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import argparse
+from concurrent.futures import ThreadPoolExecutor
 import logging
 import math
 import os
@@ -29,10 +30,8 @@ BASE_DIR = Path(__file__).resolve().parent
 MODELS_DIR = BASE_DIR / "models"
 WAKE_MODELS_DIR = MODELS_DIR / "openwakeword"
 PIPER_MODEL = MODELS_DIR / "piper" / "pt_BR-cadu-medium.onnx"
-WHISPER_MODELS = (
-    Path.home() / ".cache/huggingface/hub/models--Systran--faster-whisper-small/snapshots",
-    Path.home() / ".cache/huggingface/hub/models--Systran--faster-whisper-medium/snapshots",
-)
+WHISPER_SMALL_ROOT = Path.home() / ".cache/huggingface/hub/models--Systran--faster-whisper-small/snapshots"
+WHISPER_MEDIUM_ROOT = Path.home() / ".cache/huggingface/hub/models--Systran--faster-whisper-medium/snapshots"
 LISTENING_STATE = Path(os.environ.get("XDG_RUNTIME_DIR", f"/run/user/{os.getuid()}")) / "jarvis-listening"
 AUDIO_SOURCE = "jarvis_mic"
 SAMPLE_RATE = 16_000
@@ -321,19 +320,20 @@ class Jarvis:
             melspec_model_path=str(WAKE_MODELS_DIR / "melspectrogram.onnx"),
             embedding_model_path=str(WAKE_MODELS_DIR / "embedding_model.onnx"),
         )
-        whisper_path = self._find_whisper_model()
-        self.whisper = WhisperModel(str(whisper_path), device="cpu", compute_type="int8", cpu_threads=12)
-        LOG.info("Modelo de transcrição: %s", whisper_path)
+        small_path = self._find_whisper_model(WHISPER_SMALL_ROOT)
+        medium_path = self._find_whisper_model(WHISPER_MEDIUM_ROOT)
+        self.whisper_small = WhisperModel(str(small_path), device="cpu", compute_type="int8", cpu_threads=12)
+        self.whisper_medium = WhisperModel(str(medium_path), device="cpu", compute_type="int8", cpu_threads=12)
+        LOG.info("Modelos de transcrição: small=%s medium=%s", small_path, medium_path)
         self.voice: PiperVoice | None = PiperVoice.load(PIPER_MODEL)
         self.running = True
 
     @staticmethod
-    def _find_whisper_model() -> Path:
-        for model_root in WHISPER_MODELS:
-            snapshots = sorted(model_root.glob("*/model.bin"))
-            if snapshots:
-                return snapshots[-1].parent
-        raise FileNotFoundError("Modelo faster-whisper-medium/small não encontrado.")
+    def _find_whisper_model(model_root: Path) -> Path:
+        snapshots = sorted(model_root.glob("*/model.bin"))
+        if snapshots:
+            return snapshots[-1].parent
+        raise FileNotFoundError(f"Modelo Whisper ausente: {model_root}")
 
     def speak(self, text: str) -> None:
         text = add_honorific(text)
@@ -428,10 +428,16 @@ class Jarvis:
                 break
         return np.concatenate(frames) if frames else np.empty(0, dtype=np.int16)
 
-    def transcribe(self, audio: np.ndarray) -> str:
+    @staticmethod
+    def command_is_understood(text: str) -> bool:
+        if not text:
+            return False
+        return not interpret_command(text).response.startswith("Não entendi")
+
+    def transcribe_with(self, model: WhisperModel, audio: np.ndarray) -> str:
         audio = enhance_command_audio(audio)
         float_audio = audio.astype(np.float32) / 32768.0
-        segments, _ = self.whisper.transcribe(
+        segments, _ = model.transcribe(
             float_audio,
             language="pt",
             beam_size=1,
@@ -444,6 +450,19 @@ class Jarvis:
             without_timestamps=True,
         )
         return " ".join(segment.text.strip() for segment in segments).strip()
+
+    def transcribe(self, audio: np.ndarray) -> str:
+        executor = ThreadPoolExecutor(max_workers=2)
+        small_future = executor.submit(self.transcribe_with, self.whisper_small, audio)
+        medium_future = executor.submit(self.transcribe_with, self.whisper_medium, audio)
+        small_text = small_future.result()
+        if self.command_is_understood(small_text):
+            medium_future.cancel()
+            executor.shutdown(wait=False, cancel_futures=True)
+            return small_text
+        medium_text = medium_future.result()
+        executor.shutdown(wait=False, cancel_futures=True)
+        return medium_text or small_text
 
     def execute(self, text: str) -> None:
         LOG.info("Comando reconhecido: %s", text)
