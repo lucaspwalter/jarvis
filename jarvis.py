@@ -37,7 +37,7 @@ AUDIO_SOURCE = "jarvis_mic"
 SAMPLE_RATE = 16_000
 FRAME_SAMPLES = 1_280
 FRAME_BYTES = FRAME_SAMPLES * 2
-WAKE_THRESHOLD = 0.20
+WAKE_THRESHOLD = 0.15
 WAKE_CONFIRM_FRAMES = 3
 INPUT_GAIN = 1.60
 SILENCE_RMS = 110.0
@@ -452,6 +452,7 @@ class Jarvis:
         return " ".join(segment.text.strip() for segment in segments).strip()
 
     def transcribe(self, audio: np.ndarray) -> str:
+        started = time.monotonic()
         executor = ThreadPoolExecutor(max_workers=2)
         small_future = executor.submit(self.transcribe_with, self.whisper_small, audio)
         medium_future = executor.submit(self.transcribe_with, self.whisper_medium, audio)
@@ -459,9 +460,11 @@ class Jarvis:
         if self.command_is_understood(small_text):
             medium_future.cancel()
             executor.shutdown(wait=False, cancel_futures=True)
+            LOG.info("Transcrição escolhida: small (%.2fs)", time.monotonic() - started)
             return small_text
         medium_text = medium_future.result()
         executor.shutdown(wait=False, cancel_futures=True)
+        LOG.info("Transcrição escolhida: medium (%.2fs)", time.monotonic() - started)
         return medium_text or small_text
 
     def execute(self, text: str) -> None:
