@@ -507,7 +507,7 @@ class Jarvis:
                 "asetrate=22050*0.92,aresample=22050,atempo=1.15,"
                 "highpass=f=110,lowpass=f=6500,"
                 "tremolo=f=18:d=0.025,"
-                "acompressor=threshold=-20dB:ratio=2:attack=8:release=70,volume=0.96"
+                "acompressor=threshold=-20dB:ratio=2:attack=8:release=70,volume=0.65"
             )
             filtered = subprocess.run(
                 ["ffmpeg", "-hide_banner", "-loglevel", "error", "-y", "-i", str(raw_path), "-af", effect, str(processed_path)],
