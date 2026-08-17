@@ -22,6 +22,10 @@ class CommandTests(unittest.TestCase):
         self.assertEqual(interpret_command("abri o terminal").action, ["kitty"])
         self.assertEqual(interpret_command("abre fadi fox").action, ["firefox"])
 
+    def test_extra_commands(self):
+        self.assertEqual(interpret_command("mostre meu ip local").response, "Mostrando IP local.")
+        self.assertEqual(interpret_command("por favor abra o GitHub").response, "Abrindo GitHub.")
+
     def test_dashboard_commands_variations(self):
         self.assertEqual(interpret_command("ative o modo desempenho").action[-1], "/home/lucas/.local/bin/performace")
         self.assertEqual(interpret_command("mostre os processos pesados").action[-1], "/home/lucas/.local/bin/pesados")

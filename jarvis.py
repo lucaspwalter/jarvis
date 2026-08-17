@@ -152,6 +152,47 @@ def remove_dictation_prompt(text: str) -> str:
     ).strip()
 
 
+EXTRA_COMMAND_SPECS = [
+    ("mostrar ip local", "ip -brief address", "Mostrando IP local."),
+    ("mostrar ip publico", "curl -4 -s https://ifconfig.me; echo", "Mostrando IP público."),
+    ("testar internet", "ping -c 4 1.1.1.1", "Testando internet."),
+    ("testar latencia", "ping -c 4 1.1.1.1", "Testando latência."),
+    ("mostrar espaco em disco", "df -h", "Mostrando espaço em disco."),
+    ("mostrar processos cpu", "ps -eo pid,comm,%cpu --sort=-%cpu | head -15", "Mostrando processos por CPU."),
+    ("mostrar memoria", "free -h", "Mostrando memória."),
+    ("mostrar temperatura", "sensors", "Mostrando temperatura."),
+    ("mostrar versao do kernel", "uname -a", "Mostrando versão do kernel."),
+    ("mostrar tempo ligado", "uptime", "Mostrando tempo ligado."),
+    ("abrir github", "xdg-open https://github.com", "Abrindo GitHub."),
+    ("abrir youtube", "xdg-open https://youtube.com", "Abrindo YouTube."),
+    ("abrir discord", "discord", "Abrindo Discord."),
+    ("abrir vscode", "code", "Abrindo VS Code."),
+    ("abrir downloads", "dolphin $HOME/Downloads", "Abrindo Downloads."),
+    ("capturar tela", "grim $HOME/Imagens/captura-$(date +%Y%m%d-%H%M%S).png", "Capturando tela."),
+    ("bloquear computador", "loginctl lock-session", "Bloqueando computador."),
+    ("proxima musica", "playerctl next", "Próxima música."),
+    ("musica anterior", "playerctl previous", "Música anterior."),
+    ("mostrar processos memoria", "ps -eo pid,comm,%mem --sort=-%mem | head -15", "Mostrando processos por memória."),
+]
+EXTRA_FILLERS = ("", "por favor", "senhor", "agora", "rapidamente", "neste momento", "no computador", "aqui", "para mim", "sem demora")
+EXTRA_VERBS = ("mostrar", "mostre", "mostra", "ver", "veja", "exibir", "exiba", "consultar", "consulte", "abrir", "abra", "iniciar", "inicie", "executar", "execute", "fazer", "faça", "rodar", "rode", "testar", "teste", "testa", "me diga", "diga")
+
+def extra_command_result(command: str) -> CommandResult | None:
+    matches = []
+    for phrase, shell, response in EXTRA_COMMAND_SPECS:
+        target = re.sub(r"^(mostrar|abrir|testar|executar|rodar)\s+", "", phrase)
+        if re.search(rf"(?<!\w){re.escape(target)}(?!\w)", command):
+            matches.append((len(target.split()), len(target), shell, response))
+    if not matches:
+        return None
+    best_score = max((words, chars) for words, chars, _, _ in matches)
+    best = [(shell, response) for words, chars, shell, response in matches if (words, chars) == best_score]
+    if len({shell for shell, _ in best}) > 1:
+        return CommandResult("Comando ambíguo. Diga novamente.")
+    shell, response = best[0]
+    return CommandResult(response, ["kitty", "-e", "bash", "-lc", f"{shell}; read -rp 'Enter para fechar...' _"])
+
+
 def interpret_command(text: str, now: datetime | None = None) -> CommandResult:
     payload = codex_write_payload(text)
     if payload:
@@ -183,6 +224,10 @@ def interpret_command(text: str, now: datetime | None = None) -> CommandResult:
         if re.search(rf"\b({open_verbs}) (o )?{re.escape(name)}\b", command) or command == name or (name in command and len(command.split()) <= 4):
             return CommandResult(f"Abrindo {name}.", executable)
 
+    extra_result = extra_command_result(command)
+    if extra_result:
+        return extra_result
+
     script_commands = [
         ("resfriar normal", ["resfriar normal", "resfriar normalmente", "temperatura normal", "restaurar limites", "limites originais"], "Restaurando limites originais."),
         ("performace", ["performance", "performace", "modo desempenho", "modo performance", "preparar pc para jogar", "pc para jogar", "modo jogo"], "Preparando o PC para jogar."),
@@ -198,14 +243,22 @@ def interpret_command(text: str, now: datetime | None = None) -> CommandResult:
         ("resfriar", ["resfriar", "esfriar", "resfriar pc", "esfriar pc", "reduzir temperatura", "baixar temperatura", "reduzir calor", "modo frio"], "Reduzindo temperatura sem fechar aplicativos."),
         ("rede", ["rede", "status da rede", "status da internet", "ver minha rede", "internet", "conexão", "conexao"], "Mostrando status da rede."),
     ]
-    script_commands = expand_command_variations(script_commands)
+    if not hasattr(interpret_command, "_script_commands"):
+        interpret_command._script_commands = expand_command_variations(script_commands)
+    script_commands = interpret_command._script_commands
     if any(verb in command for verb in ("desativ", "deslig", "parar", "pare", "encerrar", "fechar")) and any(word in command for word in ("monitor", "monitora")):
         return CommandResult("Encerrando monitor remoto.", [str(Path.home() / ".local/bin/parar3monitor")])
+    if not hasattr(interpret_command, "_script_patterns"):
+        interpret_command._script_patterns = [
+            (script, re.compile(rf"(?<!\w)(?:{'|'.join(re.escape(alias) for alias in sorted(aliases, key=len, reverse=True) if alias)})(?!\w)"), response)
+            for script, aliases, response in script_commands
+        ]
     matches = []
-    for script, aliases, response in script_commands:
-        for alias in aliases:
-            if alias and re.search(rf"(?<!\w){re.escape(alias)}(?!\w)", command):
-                matches.append((len(alias.split()), len(alias), script, response))
+    for script, pattern, response in interpret_command._script_patterns:
+        match = pattern.search(command)
+        if match:
+            alias = match.group(0)
+            matches.append((len(alias.split()), len(alias), script, response))
     if matches:
         best_score = max((words, chars) for words, chars, _, _ in matches)
         best = [(script, response) for words, chars, script, response in matches if (words, chars) == best_score]
