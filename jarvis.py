@@ -41,7 +41,7 @@ FRAME_BYTES = FRAME_SAMPLES * 2
 WAKE_THRESHOLD = 0.30
 INPUT_GAIN = 1.60
 SILENCE_RMS = 110.0
-SILENCE_SECONDS = 0.50
+SILENCE_SECONDS = 0.35
 MAX_COMMAND_SECONDS = 9.0
 MIN_COMMAND_SECONDS = 0.5
 
@@ -255,7 +255,7 @@ class Jarvis:
             embedding_model_path=str(WAKE_MODELS_DIR / "embedding_model.onnx"),
         )
         self.whisper = WhisperModel(
-            str(self._find_whisper_model()), device="cpu", compute_type="int8", cpu_threads=10
+            str(self._find_whisper_model()), device="cpu", compute_type="int8", cpu_threads=12
         )
         self.voice: PiperVoice | None = None
         self.running = True
@@ -361,9 +361,9 @@ class Jarvis:
         segments, _ = self.whisper.transcribe(
             float_audio,
             language="pt",
-            beam_size=5,
+            beam_size=1,
             vad_filter=True,
-            vad_parameters={"min_silence_duration_ms": 250, "speech_pad_ms": 220},
+            vad_parameters={"min_silence_duration_ms": 150, "speech_pad_ms": 160},
             condition_on_previous_text=False,
             initial_prompt="Jarvis.",
             hotwords="Jarvis Firefox Chrome terminal Codex Copilot",
