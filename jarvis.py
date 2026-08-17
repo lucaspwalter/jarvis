@@ -38,7 +38,8 @@ AUDIO_SOURCE = "jarvis_mic"
 SAMPLE_RATE = 16_000
 FRAME_SAMPLES = 1_280
 FRAME_BYTES = FRAME_SAMPLES * 2
-WAKE_THRESHOLD = 0.30
+WAKE_THRESHOLD = 0.22
+WAKE_CONFIRM_FRAMES = 2
 INPUT_GAIN = 1.60
 SILENCE_RMS = 110.0
 SILENCE_SECONDS = 0.12
@@ -424,12 +425,17 @@ class Jarvis:
             try:
                 self.wake.reset()
                 pre_roll: deque[np.ndarray] = deque(maxlen=math.ceil(1.2 * SAMPLE_RATE / FRAME_SAMPLES))
+                wake_hits = 0
                 while self.running:
                     frame = stream.read_frame()
                     pre_roll.append(frame)
                     predictions = self.wake.predict(frame)
                     score = max(float(value) for value in predictions.values())
                     if score < WAKE_THRESHOLD:
+                        wake_hits = 0
+                        continue
+                    wake_hits += 1
+                    if wake_hits < WAKE_CONFIRM_FRAMES:
                         continue
                     LOG.info("Ativação detectada. score=%.3f", score)
                     ducked_audio = self.duck_app_audio()
