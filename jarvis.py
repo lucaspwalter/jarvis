@@ -109,6 +109,7 @@ def interpret_command(text: str, now: datetime | None = None) -> CommandResult:
     command = normalize(text)
     command = re.sub(r"^(ei +)?jarvis\b", "", command).strip(" ,")
     command = re.sub(r"\bdesat(?:ive|iva|ivar|ime)\b", "desative", command)
+    command = re.sub(r"\bdespousar\b", "despausar", command)
     command = command.replace("fadi fox", "firefox").replace("fe de foco", "firefox").replace("grom", "chrome")
     now = now or datetime.now()
 
@@ -164,6 +165,8 @@ def interpret_command(text: str, now: datetime | None = None) -> CommandResult:
     if "silencie" in command or "mute" in command or "mudo" in command:
         return CommandResult("Alternando silêncio.", ["wpctl", "set-mute", "@DEFAULT_AUDIO_SINK@", "toggle"])
     if re.search(r"\b(pause|pausar|pausa|continue|continuar|despause|despausar|retome|retomar|toque|tocar)\b.*\b(m[iu]sica|m[ií]dia|video|vídeo|som|reprodu[cç][aã]o)\b", command):
+        return CommandResult("Controlando reprodução.", ["playerctl", "play-pause"])
+    if command in {"pause", "pausar", "pausa", "continue", "continuar", "despause", "despausar", "retome", "retomar"}:
         return CommandResult("Controlando reprodução.", ["playerctl", "play-pause"])
     if "proxima musica" in command:
         return CommandResult("Próxima música.", ["playerctl", "next"])
