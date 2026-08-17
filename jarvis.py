@@ -135,7 +135,10 @@ def codex_write_payload(text: str) -> str | None:
         text,
         flags=re.IGNORECASE,
     )
-    return match.group(1).strip() if match and match.group(1).strip() else None
+    if not match:
+        return None
+    payload = match.group(1).strip().strip(".,;:-")
+    return payload if re.search(r"[\wÀ-ÿ]", payload) else None
 
 
 def is_codex_write_request(text: str) -> bool:

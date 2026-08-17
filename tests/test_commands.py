@@ -52,6 +52,7 @@ class CommandTests(unittest.TestCase):
         self.assertEqual(result.action[1], "abra o terminal amanhã")
         self.assertTrue(is_codex_write_request("Jarvis, digite para mim"))
         self.assertIsNone(codex_write_payload("Jarvis, digite para mim"))
+        self.assertIsNone(codex_write_payload("Jarvis, escreva para mim."))
 
     def test_audio_enhancement_preserves_shape(self):
         import numpy as np
