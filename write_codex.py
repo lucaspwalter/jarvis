@@ -43,7 +43,11 @@ def main() -> int:
         if not any("codex" in command_line(pid).lower() for pid in pids):
             continue
         address = client["address"]
-        subprocess.run(["hyprctl", "dispatch", "focuswindow", f"address:{address}"], check=False)
+        # Hyprland Lua dispatcher requires the address matcher prefix.
+        subprocess.run(
+            ["hyprctl", "dispatch", f'hl.dsp.focus({{ window = "address:{address}" }})'],
+            check=False,
+        )
         subprocess.run(["wtype", payload], check=True)
         subprocess.run(["wtype", "\n"], check=True)
         return 0

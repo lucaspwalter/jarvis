@@ -467,19 +467,16 @@ class Jarvis:
                             audio = self.record_command(stream, list(pre_roll))
                         finally:
                             self.set_listening(False)
-                        stream.close()
                         text = self.transcribe(audio)
                         if text:
                             if is_codex_write_request(text) and codex_write_payload(text) is None:
                                 self.speak("Pode ditar.")
                                 time.sleep(0.2)
-                                dictation_stream = AudioStream()
                                 try:
                                     self.set_listening(True)
-                                    dictated_audio = self.record_command(dictation_stream, [])
+                                    dictated_audio = self.record_command(stream, [])
                                 finally:
                                     self.set_listening(False)
-                                    dictation_stream.close()
                                 dictated_text = self.transcribe(dictated_audio)
                                 if dictated_text:
                                     self.execute(f"digite para mim: {dictated_text}")
