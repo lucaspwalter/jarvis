@@ -30,8 +30,8 @@ MODELS_DIR = BASE_DIR / "models"
 WAKE_MODELS_DIR = MODELS_DIR / "openwakeword"
 PIPER_MODEL = MODELS_DIR / "piper" / "pt_BR-cadu-medium.onnx"
 WHISPER_MODELS = (
-    Path.home() / ".cache/huggingface/hub/models--Systran--faster-whisper-medium/snapshots",
     Path.home() / ".cache/huggingface/hub/models--Systran--faster-whisper-small/snapshots",
+    Path.home() / ".cache/huggingface/hub/models--Systran--faster-whisper-medium/snapshots",
 )
 LISTENING_STATE = Path(os.environ.get("XDG_RUNTIME_DIR", f"/run/user/{os.getuid()}")) / "jarvis-listening"
 AUDIO_SOURCE = "jarvis_mic"
@@ -321,9 +321,9 @@ class Jarvis:
             melspec_model_path=str(WAKE_MODELS_DIR / "melspectrogram.onnx"),
             embedding_model_path=str(WAKE_MODELS_DIR / "embedding_model.onnx"),
         )
-        self.whisper = WhisperModel(
-            str(self._find_whisper_model()), device="cpu", compute_type="int8", cpu_threads=12
-        )
+        whisper_path = self._find_whisper_model()
+        self.whisper = WhisperModel(str(whisper_path), device="cpu", compute_type="int8", cpu_threads=12)
+        LOG.info("Modelo de transcrição: %s", whisper_path)
         self.voice: PiperVoice | None = PiperVoice.load(PIPER_MODEL)
         self.running = True
 
