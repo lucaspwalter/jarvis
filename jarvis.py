@@ -121,9 +121,23 @@ MEDIA_ERROR_VARIATIONS = {
     for verb in ("pouse", "pousar", "pousa", "pousei", "pesar", "pozar", "pausar", "pausa", "pausei", "despouse", "despousar", "dispause", "dispausar", "despausa", "despausar", "retoma", "retomei", "continuar", "continaur", "tocaar")
     for target in ("a música", "a musica", "a mídia", "a midia", "o vídeo", "o video", "o som", "a reprodução", "a reproducao", "a faixa", "a transmissão", "a transmissao", "o conteúdo", "o conteudo", "o áudio", "o audio", "o stream")
 }
+CODEX_WRITE_VARIATIONS = {
+    normalize(f"{filler} {verb} {target}")
+    for filler in ("", "por favor", "senhor", "agora", "rapidamente", "neste momento", "para mim", "por gentileza", "sem demora", "no terminal")
+    for verb in ("escreva", "escrever", "escreve", "digite", "digitar", "digita", "coloque", "colocar", "insira", "inserir", "mande", "mandar", "envie", "enviar", "transcreva", "transcrever", "redija", "redigir", "coloque texto", "digite texto")
+    for target in ("no codex", "no Codex", "para o codex", "no terminal do codex", "na janela do codex", "na sessão do codex", "na sessao do codex")
+}
 
 
 def interpret_command(text: str, now: datetime | None = None) -> CommandResult:
+    write_match = re.search(
+        r"\b(?:escreva|escrever|escreve|digite|digitar|digita|coloque|colocar|insira|inserir|mande|mandar|envie|enviar|transcreva|transcrever)\s+"
+        r"(?:no|na|para o|para a)\s+codex\s*[:,;-]?\s*(.+)$",
+        text,
+        flags=re.IGNORECASE,
+    )
+    if write_match and write_match.group(1).strip():
+        return CommandResult("Escrevendo no Codex.", [str(BASE_DIR / "write_codex.py"), write_match.group(1).strip()])
     command = normalize(text)
     command = re.sub(r"^(ei +)?jarvis\b", "", command).strip(" ,")
     command = re.sub(r"\bdesat(?:ive|iva|ivar|ime)\b", "desative", command)
