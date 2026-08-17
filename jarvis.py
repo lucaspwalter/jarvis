@@ -97,7 +97,7 @@ def interpret_command(text: str, now: datetime | None = None) -> CommandResult:
         ("resfriar normal", ["resfriar normal", "resfriar normalmente", "temperatura normal", "restaurar limites", "limites originais"], "Restaurando limites originais."),
         ("performace", ["performance", "performace", "modo desempenho", "modo performance", "preparar pc para jogar", "pc para jogar", "modo jogo"], "Preparando o PC para jogar."),
         ("atualizarlayout", ["atualizar layout", "atualize o layout", "sincronizar configurações", "sincronizar configuracoes", "recarregar configurações", "recarregar configuracoes"], "Sincronizando configurações."),
-        ("3monitor", ["3 monitor", "terceiro monitor", "terceiro monitores", "três monitor", "tres monitor", "três monitores", "tres monitores", "tela três", "tela tres", "notebook como monitor", "ativar monitor", "ativar terceiro monitor", "ligar terceiro monitor", "usar terceiro monitor"], "Ativando notebook como monitor."),
+        ("3monitor", ["3 monitor", "terceiro monitor", "terceira monitora", "terceiro monitora", "terceiro monitores", "três monitor", "tres monitor", "três monitores", "tres monitores", "tela três", "tela tres", "notebook como monitor", "ativar monitor", "ative monitor", "ativar terceiro monitor", "ative terceiro monitor", "ativar terceira monitora", "ative terceira monitora", "ligar terceiro monitor", "ligue terceiro monitor", "usar terceiro monitor"], "Ativando notebook como monitor."),
         ("pc-remoto", ["pc remoto", "pc-remoto", "acesso remoto", "abrir pc remoto", "abrir pc no notebook", "conectar ao pc"], "Abrindo PC remoto."),
         ("autoclicker", ["autoclicker", "auto clicker", "auto clique", "cliques automáticos", "cliques automaticos", "iniciar cliques"], "Iniciando cliques automáticos."),
         ("consumo", ["consumo", "consumo do pc", "status do pc", "cpu ram", "cpu e ram", "temperatura do pc", "recursos do pc"], "Mostrando consumo do PC."),
@@ -108,7 +108,7 @@ def interpret_command(text: str, now: datetime | None = None) -> CommandResult:
         ("resfriar", ["resfriar", "esfriar", "resfriar pc", "esfriar pc", "reduzir temperatura", "baixar temperatura", "reduzir calor", "modo frio"], "Reduzindo temperatura sem fechar aplicativos."),
         ("rede", ["rede", "status da rede", "status da internet", "ver minha rede", "internet", "conexão", "conexao"], "Mostrando status da rede."),
     ]
-    if any(verb in command for verb in ("desativ", "deslig", "parar", "pare", "encerrar", "fechar")) and "monitor" in command:
+    if any(verb in command for verb in ("desativ", "deslig", "parar", "pare", "encerrar", "fechar")) and any(word in command for word in ("monitor", "monitora")):
         return CommandResult("Encerrando monitor remoto.", [str(Path.home() / ".local/bin/parar3monitor")])
     for script, aliases, response in script_commands:
         if any(alias in command for alias in aliases):
