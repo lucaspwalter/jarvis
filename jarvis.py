@@ -114,6 +114,7 @@ def interpret_command(text: str, now: datetime | None = None) -> CommandResult:
 
     applications = {
         "google chrome": ["google-chrome-stable"],
+        "google": ["google-chrome-stable"],
         "chrome": ["google-chrome-stable"],
         "firefox": ["firefox"],
         "terminal": ["kitty"],

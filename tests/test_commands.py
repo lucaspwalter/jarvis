@@ -12,6 +12,7 @@ class CommandTests(unittest.TestCase):
     def test_open_chrome(self):
         result = interpret_command("Jarvis, abra o Google Chrome")
         self.assertEqual(result.action, ["google-chrome-stable"])
+        self.assertEqual(interpret_command("abra o Google").action, ["google-chrome-stable"])
 
     def test_hey_jarvis_open_firefox(self):
         result = interpret_command("Ei Jarvis, abra o Firefox")
