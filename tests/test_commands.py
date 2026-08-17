@@ -60,13 +60,18 @@ class CommandTests(unittest.TestCase):
         self.assertEqual(result.action[:2], ["wpctl", "set-volume"])
 
     def test_pause_media(self):
-        for phrase in ("pause a mídia", "pausar o vídeo", "pause o som", "continue a música", "despausar a mídia", "despousar", "pousar", "pose o vídeo", "dispause o vídeo"):
+        for phrase in ("pause a mídia", "pausar o vídeo", "pause o som", "continue a música", "despausar a mídia", "despousar", "disposa do vídeo", "pousar", "pose o vídeo", "dispause o vídeo"):
             self.assertEqual(interpret_command(phrase).action, ["playerctl", "play-pause"])
 
     def test_search(self):
         result = interpret_command("pesquise por PipeWire no Linux")
         self.assertIn("pipewire", result.response)
         self.assertIn("pipewire+no+linux", result.action[-1])
+
+    def test_unknown_command_asks_repeat(self):
+        result = interpret_command("faça uma coisa desconhecida")
+        self.assertIsNone(result.action)
+        self.assertIn("Diga novamente", result.response)
 
     def test_honorific(self):
         self.assertEqual(add_honorific("Sistema online."), "Senhor, Sistema online.")

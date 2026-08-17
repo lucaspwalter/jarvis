@@ -127,6 +127,7 @@ def interpret_command(text: str, now: datetime | None = None) -> CommandResult:
     command = re.sub(r"^(ei +)?jarvis\b", "", command).strip(" ,")
     command = re.sub(r"\bdesat(?:ive|iva|ivar|ime)\b", "desative", command)
     command = re.sub(r"\bdespousar\b", "despausar", command)
+    command = re.sub(r"\bdisposa\b", "despausar", command)
     command = re.sub(r"\b(dispause|dispausar|despouse)\b", "despausar", command)
     command = re.sub(r"\b(pousar|pousa|pouse)\b", "pausar", command)
     command = re.sub(r"\b(pose|poze)\b", "pause", command)
@@ -217,10 +218,10 @@ def interpret_command(text: str, now: datetime | None = None) -> CommandResult:
         )
     if command:
         return CommandResult(
-            "Ainda não conheço esse comando. Vou pesquisar.",
-            ["xdg-open", f"https://www.google.com/search?q={quote_plus(command)}"],
+            "Não entendi. Diga novamente.",
+            None,
         )
-    return CommandResult("Não entendi o comando.")
+    return CommandResult("Não entendi. Diga novamente.")
 
 
 class AudioStream:
@@ -446,7 +447,7 @@ class Jarvis:
                             self.speak("Não entendi o comando.")
                     finally:
                         self.restore_app_audio(ducked_audio)
-                    time.sleep(0.1)
+                    time.sleep(2.0)
                     break
             finally:
                 stream.close()
