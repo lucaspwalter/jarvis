@@ -360,12 +360,10 @@ class Jarvis:
             vad_filter=True,
             vad_parameters={"min_silence_duration_ms": 250, "speech_pad_ms": 220},
             condition_on_previous_text=False,
-            initial_prompt=(
-                "Comando em português para Jarvis, assistente do computador. "
-                "Pode abrir Firefox, Chrome, terminal, Codex, Copilot, ativar ou desativar o terceiro monitor, "
-                "informar horas, controlar volume, mostrar consumo, rede e processos."
-            ),
+            initial_prompt="Comandos em português: Jarvis, que horas são? Jarvis, abra o terminal. Jarvis, ative o terceiro monitor.",
             hotwords="Jarvis que horas são abra abrir ative desative terceiro monitor terminal Firefox Chrome Codex volume",
+            temperature=0.0,
+            without_timestamps=True,
         )
         return " ".join(segment.text.strip() for segment in segments).strip()
 
