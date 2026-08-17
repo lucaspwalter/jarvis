@@ -5,7 +5,7 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
-from jarvis import CODEX_WRITE_VARIATIONS, MEDIA_ERROR_VARIATIONS, MEDIA_VARIATIONS, add_honorific, codex_write_payload, enhance_command_audio, expand_command_variations, interpret_command, is_codex_write_request
+from jarvis import CODEX_WRITE_VARIATIONS, MEDIA_ERROR_VARIATIONS, MEDIA_VARIATIONS, add_honorific, codex_write_payload, enhance_command_audio, expand_command_variations, interpret_command, is_codex_write_request, remove_dictation_prompt
 
 
 class CommandTests(unittest.TestCase):
@@ -53,6 +53,7 @@ class CommandTests(unittest.TestCase):
         self.assertTrue(is_codex_write_request("Jarvis, digite para mim"))
         self.assertIsNone(codex_write_payload("Jarvis, digite para mim"))
         self.assertIsNone(codex_write_payload("Jarvis, escreva para mim."))
+        self.assertEqual(remove_dictation_prompt("Senhor, pode digitar. Mande para o GitHub"), "Mande para o GitHub")
 
     def test_audio_enhancement_preserves_shape(self):
         import numpy as np

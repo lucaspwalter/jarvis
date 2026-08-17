@@ -145,6 +145,15 @@ def is_codex_write_request(text: str) -> bool:
     return bool(re.search(r"\b(?:digite|digitar|digita|escreva|escrever|escreve)\s+para\s+mim\b", text, flags=re.IGNORECASE))
 
 
+def remove_dictation_prompt(text: str) -> str:
+    return re.sub(
+        r"^(?:senhor[, ]*)?(?:pode|podem)\s+(?:ditar|digitar)\s*[,.;:!-]*\s*",
+        "",
+        text.strip(),
+        flags=re.IGNORECASE,
+    ).strip()
+
+
 def interpret_command(text: str, now: datetime | None = None) -> CommandResult:
     payload = codex_write_payload(text)
     if payload:
@@ -486,7 +495,7 @@ class Jarvis:
                                     dictated_audio = self.record_command(stream, [], silence_seconds=0.75, max_seconds=15.0)
                                 finally:
                                     self.set_listening(False)
-                                dictated_text = self.transcribe(dictated_audio)
+                                dictated_text = remove_dictation_prompt(self.transcribe(dictated_audio))
                                 if dictated_text:
                                     LOG.info("Ditado reconhecido: %s", dictated_text)
                                     self.execute(f"digite para mim: {dictated_text}")
