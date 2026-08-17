@@ -59,7 +59,7 @@ class CommandTests(unittest.TestCase):
         self.assertEqual(result.action[:2], ["wpctl", "set-volume"])
 
     def test_pause_media(self):
-        for phrase in ("pause a mídia", "pausar o vídeo", "pause o som", "continue a música", "despausar a mídia", "despousar"):
+        for phrase in ("pause a mídia", "pausar o vídeo", "pause o som", "continue a música", "despausar a mídia", "despousar", "pousar", "pose o vídeo", "dispause o vídeo"):
             self.assertEqual(interpret_command(phrase).action, ["playerctl", "play-pause"])
 
     def test_search(self):
