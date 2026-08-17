@@ -27,6 +27,11 @@ class CommandTests(unittest.TestCase):
         self.assertEqual(interpret_command("conecte ao notebook").action[-1], "/home/lucas/.local/bin/notebook")
         self.assertEqual(interpret_command("abra o pc remoto").action[-1], "/home/lucas/.local/bin/pc-remoto")
 
+    def test_capabilities_includes_dashboard_commands(self):
+        response = interpret_command("o que você pode fazer").response
+        for capability in ("performance", "autoclicker", "processos pesados", "resfriar o PC"):
+            self.assertIn(capability, response)
+
     def test_time(self):
         result = interpret_command("que horas são", datetime(2026, 8, 17, 16, 45))
         self.assertEqual(result.response, "Agora são 16 horas e 45 minutos.")

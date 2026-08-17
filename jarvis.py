@@ -130,7 +130,11 @@ def interpret_command(text: str, now: datetime | None = None) -> CommandResult:
     if "tela preta" in command:
         return CommandResult("Alternando tela preta.", [str(Path.home() / ".config/hypr/scripts/tela_preta")])
     if "o que voce pode fazer" in command or "seus comandos" in command:
-        return CommandResult("Posso abrir aplicativos, pesquisar, informar hora e data, controlar volume, música e tela preta.")
+        return CommandResult(
+            "Posso abrir aplicativos e terminal, pesquisar, informar hora e data, controlar volume e música, "
+            "ativar performance, atualizar layout, usar notebook como monitor, abrir PC remoto, iniciar autoclicker, "
+            "mostrar consumo e processos pesados, conectar notebook, parar monitor remoto, restaurar sessão padrão e resfriar o PC."
+        )
 
     search = re.sub(r"^(pesquise|pesquisar|procure|procurar)( por)?\s+", "", command).strip()
     if search and search != command:
