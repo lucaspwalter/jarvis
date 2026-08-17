@@ -178,7 +178,7 @@ def interpret_command(text: str, now: datetime | None = None) -> CommandResult:
         return CommandResult(response, [str(Path.home() / ".local/bin" / script)])
 
     if any(alias in command for alias in ("codex", "abrir codex", "iniciar codex", "abrir o codex")):
-        return CommandResult("Abrindo Codex.", ["kitty", "-e", "codex"])
+        return CommandResult("Abrindo Codex no modo YOLO.", ["kitty", "-e", "codex", "--dangerously-bypass-approvals-and-sandbox"])
     if any(alias in command for alias in ("copilot", "abrir copilot", "iniciar copilot", "abrir o copilot")):
         return CommandResult("Abrindo Copilot.", ["kitty", "-e", "copilot"])
 

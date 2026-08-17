@@ -32,7 +32,7 @@ class CommandTests(unittest.TestCase):
         self.assertEqual(interpret_command("desatime terceiro monitor").action[-1], "/home/lucas/.local/bin/parar3monitor")
         self.assertEqual(interpret_command("ative terceira monitora").action[-1], "/home/lucas/.local/bin/3monitor")
         self.assertEqual(interpret_command("mostre o status da rede").action[-1], "/home/lucas/.local/bin/rede")
-        self.assertEqual(interpret_command("abra o Codex").action, ["kitty", "-e", "codex"])
+        self.assertEqual(interpret_command("abra o Codex").action, ["kitty", "-e", "codex", "--dangerously-bypass-approvals-and-sandbox"])
 
     def test_capabilities_includes_dashboard_commands(self):
         response = interpret_command("o que você pode fazer").response
