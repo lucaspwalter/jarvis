@@ -26,6 +26,7 @@ class CommandTests(unittest.TestCase):
         self.assertEqual(interpret_command("mostre os processos pesados").action[-1], "/home/lucas/.local/bin/pesados")
         self.assertEqual(interpret_command("conecte ao notebook").action[-1], "/home/lucas/.local/bin/notebook")
         self.assertEqual(interpret_command("abra o pc remoto").action[-1], "/home/lucas/.local/bin/pc-remoto")
+        self.assertEqual(interpret_command("ative o terceiro monitor").action[-1], "/home/lucas/.local/bin/3monitor")
 
     def test_capabilities_includes_dashboard_commands(self):
         response = interpret_command("o que você pode fazer").response
