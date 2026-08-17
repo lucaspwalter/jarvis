@@ -17,6 +17,10 @@ class CommandTests(unittest.TestCase):
         result = interpret_command("Ei Jarvis, abra o Firefox")
         self.assertEqual(result.action, ["firefox"])
 
+    def test_open_apps_as_spoken(self):
+        self.assertEqual(interpret_command("abri o terminal").action, ["kitty"])
+        self.assertEqual(interpret_command("abre fadi fox").action, ["firefox"])
+
     def test_time(self):
         result = interpret_command("que horas são", datetime(2026, 8, 17, 16, 45))
         self.assertEqual(result.response, "Agora são 16 horas e 45 minutos.")

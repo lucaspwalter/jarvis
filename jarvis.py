@@ -77,6 +77,7 @@ class CommandResult:
 def interpret_command(text: str, now: datetime | None = None) -> CommandResult:
     command = normalize(text)
     command = re.sub(r"^(ei +)?jarvis\b", "", command).strip(" ,")
+    command = command.replace("fadi fox", "firefox").replace("fe de foco", "firefox").replace("grom", "chrome")
     now = now or datetime.now()
 
     applications = {
@@ -87,8 +88,9 @@ def interpret_command(text: str, now: datetime | None = None) -> CommandResult:
         "arquivos": ["dolphin"],
         "gerenciador de arquivos": ["dolphin"],
     }
+    open_verbs = r"abra|abre|abrir|abri|inicie|iniciar|inicia|execute|executa|rode|rodar"
     for name, executable in applications.items():
-        if re.search(rf"\b(abra|abrir|inicie|iniciar) (o )?{re.escape(name)}\b", command):
+        if re.search(rf"\b({open_verbs}) (o )?{re.escape(name)}\b", command) or command == name:
             return CommandResult(f"Abrindo {name}.", executable)
 
     if "que horas" in command or command == "horas":
