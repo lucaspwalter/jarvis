@@ -504,14 +504,11 @@ class Jarvis:
             with wave.open(str(raw_path), "wb") as wav_file:
                 self.voice.synthesize_wav(text, wav_file)
             effect = (
-                "asetrate=22050*0.90,aresample=22050,atempo=1.15,"
+                "asetrate=22050*0.92,aresample=22050,atempo=1.15,"
                 "highpass=f=110,lowpass=f=6500,"
-                "chorus=0.6:0.8:15|22:0.32|0.22:0.30|0.22:1.8|2.2,"
-                "flanger=delay=2:depth=2:regen=20:width=45:speed=0.35,"
-                "acrusher=bits=10:mix=0.28:mode=lin,"
-                "tremolo=f=32:d=0.12,"
-                "aecho=0.8:0.4:24:0.18,"
-                "acompressor=threshold=-20dB:ratio=3:attack=8:release=70,volume=0.92"
+                "acrusher=bits=12:mix=0.12:mode=lin,"
+                "tremolo=f=24:d=0.06,"
+                "acompressor=threshold=-20dB:ratio=2:attack=8:release=70,volume=0.96"
             )
             filtered = subprocess.run(
                 ["ffmpeg", "-hide_banner", "-loglevel", "error", "-y", "-i", str(raw_path), "-af", effect, str(processed_path)],
