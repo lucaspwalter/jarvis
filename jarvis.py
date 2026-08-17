@@ -34,9 +34,10 @@ AUDIO_SOURCE = "jarvis_mic"
 SAMPLE_RATE = 16_000
 FRAME_SAMPLES = 1_280
 FRAME_BYTES = FRAME_SAMPLES * 2
-WAKE_THRESHOLD = 0.35
+WAKE_THRESHOLD = 0.30
+INPUT_GAIN = 1.35
 SILENCE_RMS = 180.0
-SILENCE_SECONDS = 0.65
+SILENCE_SECONDS = 0.50
 MAX_COMMAND_SECONDS = 9.0
 MIN_COMMAND_SECONDS = 0.5
 
@@ -150,7 +151,8 @@ class AudioStream:
         if len(data) != FRAME_BYTES:
             error = self.process.stderr.read().decode(errors="replace") if self.process.stderr else ""
             raise RuntimeError(f"Captura de áudio encerrada: {error.strip()}")
-        return np.frombuffer(data, dtype=np.int16).copy()
+        samples = np.frombuffer(data, dtype=np.int16).astype(np.float32)
+        return np.clip(samples * INPUT_GAIN, -32768, 32767).astype(np.int16)
 
     def close(self) -> None:
         if self.process.poll() is None:
@@ -171,7 +173,9 @@ class Jarvis:
             melspec_model_path=str(WAKE_MODELS_DIR / "melspectrogram.onnx"),
             embedding_model_path=str(WAKE_MODELS_DIR / "embedding_model.onnx"),
         )
-        self.whisper: WhisperModel | None = None
+        self.whisper = WhisperModel(
+            str(self._find_whisper_model()), device="cpu", compute_type="int8", cpu_threads=6
+        )
         self.voice: PiperVoice | None = None
         self.running = True
 
@@ -244,18 +248,15 @@ class Jarvis:
         return np.concatenate(frames) if frames else np.empty(0, dtype=np.int16)
 
     def transcribe(self, audio: np.ndarray) -> str:
-        if self.whisper is None:
-            whisper_path = self._find_whisper_model()
-            self.whisper = WhisperModel(str(whisper_path), device="cpu", compute_type="int8", cpu_threads=6)
         float_audio = audio.astype(np.float32) / 32768.0
         segments, _ = self.whisper.transcribe(
             float_audio,
             language="pt",
-            beam_size=1,
+            beam_size=3,
             vad_filter=True,
             condition_on_previous_text=False,
             initial_prompt="Comando em português para Jarvis, assistente do computador.",
-            hotwords="Jarvis Chrome Firefox terminal arquivos volume música tela preta",
+            hotwords="Jarvis que horas são data abra Chrome Firefox terminal arquivos volume música tela preta",
         )
         return " ".join(segment.text.strip() for segment in segments).strip()
 
@@ -278,7 +279,7 @@ class Jarvis:
             stream = AudioStream()
             try:
                 self.wake.reset()
-                pre_roll: deque[np.ndarray] = deque(maxlen=math.ceil(3 * SAMPLE_RATE / FRAME_SAMPLES))
+                pre_roll: deque[np.ndarray] = deque(maxlen=math.ceil(1.2 * SAMPLE_RATE / FRAME_SAMPLES))
                 while self.running:
                     frame = stream.read_frame()
                     pre_roll.append(frame)
@@ -298,7 +299,7 @@ class Jarvis:
                         self.execute(text)
                     else:
                         self.speak("Não entendi o comando.")
-                    time.sleep(0.4)
+                    time.sleep(0.1)
                     break
             finally:
                 stream.close()
