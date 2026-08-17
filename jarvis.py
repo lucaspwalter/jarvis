@@ -177,13 +177,28 @@ class Jarvis:
         if self.voice is None:
             self.voice = PiperVoice.load(PIPER_MODEL)
         with tempfile.NamedTemporaryFile(prefix="jarvis-", suffix=".wav", delete=False) as temporary:
-            path = Path(temporary.name)
+            raw_path = Path(temporary.name)
+        with tempfile.NamedTemporaryFile(prefix="jarvis-robot-", suffix=".wav", delete=False) as temporary:
+            processed_path = Path(temporary.name)
         try:
-            with wave.open(str(path), "wb") as wav_file:
+            with wave.open(str(raw_path), "wb") as wav_file:
                 self.voice.synthesize_wav(text, wav_file)
-            subprocess.run(["pw-play", str(path)], check=False)
+            effect = (
+                "asetrate=22050*0.96,aresample=22050,atempo=1.041667,"
+                "highpass=f=90,lowpass=f=8000,"
+                "chorus=0.5:0.7:18|24:0.18|0.12:0.25|0.18:2|2.3,"
+                "aecho=0.8:0.35:32:0.10,"
+                "acompressor=threshold=-18dB:ratio=2.5:attack=10:release=80,volume=0.9"
+            )
+            filtered = subprocess.run(
+                ["ffmpeg", "-hide_banner", "-loglevel", "error", "-y", "-i", str(raw_path), "-af", effect, str(processed_path)],
+                check=False,
+            )
+            playback_path = processed_path if filtered.returncode == 0 else raw_path
+            subprocess.run(["pw-play", str(playback_path)], check=False)
         finally:
-            path.unlink(missing_ok=True)
+            raw_path.unlink(missing_ok=True)
+            processed_path.unlink(missing_ok=True)
 
     @staticmethod
     def record_command(stream: AudioStream, prefix: list[np.ndarray]) -> np.ndarray:
