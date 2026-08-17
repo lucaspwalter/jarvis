@@ -105,6 +105,7 @@ def expand_command_variations(script_commands: list[tuple[str, list[str], str]])
 def interpret_command(text: str, now: datetime | None = None) -> CommandResult:
     command = normalize(text)
     command = re.sub(r"^(ei +)?jarvis\b", "", command).strip(" ,")
+    command = re.sub(r"\bdesat(?:ive|iva|ivar|ime)\b", "desative", command)
     command = command.replace("fadi fox", "firefox").replace("fe de foco", "firefox").replace("grom", "chrome")
     now = now or datetime.now()
 
