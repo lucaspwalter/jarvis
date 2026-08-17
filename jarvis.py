@@ -506,8 +506,7 @@ class Jarvis:
             effect = (
                 "asetrate=22050*0.92,aresample=22050,atempo=1.15,"
                 "highpass=f=110,lowpass=f=6500,"
-                "acrusher=bits=12:mix=0.12:mode=lin,"
-                "tremolo=f=24:d=0.06,"
+                "tremolo=f=18:d=0.025,"
                 "acompressor=threshold=-20dB:ratio=2:attack=8:release=70,volume=0.96"
             )
             filtered = subprocess.run(
