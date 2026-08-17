@@ -49,6 +49,14 @@ def normalize(text: str) -> str:
     return re.sub(r"[^a-z0-9 ]+", " ", text.lower()).strip()
 
 
+def add_honorific(text: str) -> str:
+    if "senhor" in normalize(text).split():
+        return text
+    punctuation = text[-1] if text.endswith((".", "!", "?")) else "."
+    body = text[:-1] if text.endswith((".", "!", "?")) else text
+    return f"{body}, senhor{punctuation}"
+
+
 def detached(command: list[str]) -> None:
     subprocess.Popen(
         command,
@@ -175,6 +183,7 @@ class Jarvis:
         return snapshots[-1].parent
 
     def speak(self, text: str) -> None:
+        text = add_honorific(text)
         if self.voice is None:
             self.voice = PiperVoice.load(PIPER_MODEL)
         with tempfile.NamedTemporaryFile(prefix="jarvis-", suffix=".wav", delete=False) as temporary:
@@ -185,11 +194,13 @@ class Jarvis:
             with wave.open(str(raw_path), "wb") as wav_file:
                 self.voice.synthesize_wav(text, wav_file)
             effect = (
-                "asetrate=22050*0.96,aresample=22050,atempo=1.041667,"
-                "highpass=f=90,lowpass=f=8000,"
-                "chorus=0.5:0.7:18|24:0.18|0.12:0.25|0.18:2|2.3,"
-                "aecho=0.8:0.35:32:0.10,"
-                "acompressor=threshold=-18dB:ratio=2.5:attack=10:release=80,volume=0.9"
+                "asetrate=22050*0.90,aresample=22050,atempo=1.111111,"
+                "highpass=f=110,lowpass=f=6500,"
+                "chorus=0.6:0.8:15|22:0.32|0.22:0.30|0.22:1.8|2.2,"
+                "flanger=delay=2:depth=1.5:regen=12:width=35:speed=0.3,"
+                "acrusher=bits=12:mix=0.14:mode=lin,"
+                "aecho=0.8:0.4:26:0.13,"
+                "acompressor=threshold=-20dB:ratio=3:attack=8:release=70,volume=0.92"
             )
             filtered = subprocess.run(
                 ["ffmpeg", "-hide_banner", "-loglevel", "error", "-y", "-i", str(raw_path), "-af", effect, str(processed_path)],

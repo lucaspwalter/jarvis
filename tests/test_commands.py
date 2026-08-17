@@ -5,7 +5,7 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
-from jarvis import interpret_command
+from jarvis import add_honorific, interpret_command
 
 
 class CommandTests(unittest.TestCase):
@@ -29,6 +29,10 @@ class CommandTests(unittest.TestCase):
         result = interpret_command("pesquise por PipeWire no Linux")
         self.assertIn("pipewire", result.response)
         self.assertIn("pipewire+no+linux", result.action[-1])
+
+    def test_honorific(self):
+        self.assertEqual(add_honorific("Sistema online."), "Sistema online, senhor.")
+        self.assertEqual(add_honorific("Como posso ajudar, senhor?"), "Como posso ajudar, senhor?")
 
 
 if __name__ == "__main__":
