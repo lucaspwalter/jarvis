@@ -29,7 +29,10 @@ BASE_DIR = Path(__file__).resolve().parent
 MODELS_DIR = BASE_DIR / "models"
 WAKE_MODELS_DIR = MODELS_DIR / "openwakeword"
 PIPER_MODEL = MODELS_DIR / "piper" / "pt_BR-cadu-medium.onnx"
-WHISPER_MODEL = Path.home() / ".cache/huggingface/hub/models--Systran--faster-whisper-small/snapshots"
+WHISPER_MODELS = (
+    Path.home() / ".cache/huggingface/hub/models--Systran--faster-whisper-medium/snapshots",
+    Path.home() / ".cache/huggingface/hub/models--Systran--faster-whisper-small/snapshots",
+)
 LISTENING_STATE = Path(os.environ.get("XDG_RUNTIME_DIR", f"/run/user/{os.getuid()}")) / "jarvis-listening"
 AUDIO_SOURCE = "jarvis_mic"
 SAMPLE_RATE = 16_000
@@ -259,10 +262,11 @@ class Jarvis:
 
     @staticmethod
     def _find_whisper_model() -> Path:
-        snapshots = sorted(WHISPER_MODEL.glob("*/model.bin"))
-        if not snapshots:
-            raise FileNotFoundError("Modelo faster-whisper-small não encontrado.")
-        return snapshots[-1].parent
+        for model_root in WHISPER_MODELS:
+            snapshots = sorted(model_root.glob("*/model.bin"))
+            if snapshots:
+                return snapshots[-1].parent
+        raise FileNotFoundError("Modelo faster-whisper-medium/small não encontrado.")
 
     def speak(self, text: str) -> None:
         text = add_honorific(text)
