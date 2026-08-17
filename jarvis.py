@@ -229,7 +229,8 @@ class Jarvis:
     def record_command(stream: AudioStream, prefix: list[np.ndarray]) -> np.ndarray:
         frames = list(prefix)
         silent_frames = 0
-        speech_seen = True
+        # Wake-word audio stays in prefix; wait for command speech after activation.
+        speech_seen = False
         max_frames = math.ceil(MAX_COMMAND_SECONDS * SAMPLE_RATE / FRAME_SAMPLES)
         silence_limit = math.ceil(SILENCE_SECONDS * SAMPLE_RATE / FRAME_SAMPLES)
         minimum_frames = math.ceil(MIN_COMMAND_SECONDS * SAMPLE_RATE / FRAME_SAMPLES)
@@ -256,7 +257,7 @@ class Jarvis:
             vad_filter=True,
             condition_on_previous_text=False,
             initial_prompt="Comando em português para Jarvis, assistente do computador.",
-            hotwords="Jarvis que horas são data abra Chrome Firefox terminal arquivos volume música tela preta",
+            hotwords="Jarvis que horas são abra volume",
         )
         return " ".join(segment.text.strip() for segment in segments).strip()
 
