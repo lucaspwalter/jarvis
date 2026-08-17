@@ -260,13 +260,17 @@ class Jarvis:
 
     @staticmethod
     def duck_app_audio() -> list[tuple[str, str]]:
-        result = subprocess.run(["pactl", "list", "short", "sink-inputs"], capture_output=True, text=True, check=False)
+        result = subprocess.run(["pactl", "list", "sink-inputs"], capture_output=True, text=True, check=False)
         saved: list[tuple[str, str]] = []
-        for line in result.stdout.splitlines():
-            fields = line.split()
-            if not fields:
+        blocks = re.split(r"\n(?=Sink Input #)", result.stdout)
+        for block in blocks:
+            match_id = re.search(r"Sink Input #(\d+)", block)
+            if not match_id:
                 continue
-            stream_id = fields[0]
+            # This virtual stream feeds the echo-cancel sink; muting it mutes Jarvis too.
+            if "echo-cancel-playback" in block or "Echo-Cancel Playback" in block:
+                continue
+            stream_id = match_id.group(1)
             volume = subprocess.run(["pactl", "get-sink-input-volume", stream_id], capture_output=True, text=True, check=False)
             match = re.search(r"(\d+)%", volume.stdout)
             if not match:
