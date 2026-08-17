@@ -4,6 +4,7 @@ from __future__ import annotations
 import argparse
 import logging
 import math
+import os
 import re
 import signal
 import subprocess
@@ -28,6 +29,7 @@ MODELS_DIR = BASE_DIR / "models"
 WAKE_MODELS_DIR = MODELS_DIR / "openwakeword"
 PIPER_MODEL = MODELS_DIR / "piper" / "pt_BR-cadu-medium.onnx"
 WHISPER_MODEL = Path.home() / ".cache/huggingface/hub/models--Systran--faster-whisper-small/snapshots"
+LISTENING_STATE = Path(os.environ.get("XDG_RUNTIME_DIR", f"/run/user/{os.getuid()}")) / "jarvis-listening"
 AUDIO_SOURCE = "jarvis_mic"
 SAMPLE_RATE = 16_000
 FRAME_SAMPLES = 1_280
@@ -173,7 +175,6 @@ class Jarvis:
         return snapshots[-1].parent
 
     def speak(self, text: str) -> None:
-        subprocess.run(["notify-send", "Jarvis", text], check=False)
         if self.voice is None:
             self.voice = PiperVoice.load(PIPER_MODEL)
         with tempfile.NamedTemporaryFile(prefix="jarvis-", suffix=".wav", delete=False) as temporary:
@@ -199,6 +200,14 @@ class Jarvis:
         finally:
             raw_path.unlink(missing_ok=True)
             processed_path.unlink(missing_ok=True)
+
+    @staticmethod
+    def set_listening(listening: bool) -> None:
+        if listening:
+            LISTENING_STATE.touch()
+        else:
+            LISTENING_STATE.unlink(missing_ok=True)
+        subprocess.run(["pkill", "-RTMIN+8", "waybar"], check=False)
 
     @staticmethod
     def record_command(stream: AudioStream, prefix: list[np.ndarray]) -> np.ndarray:
@@ -251,6 +260,7 @@ class Jarvis:
         self.speak(result.response)
 
     def run(self) -> None:
+        self.set_listening(False)
         LOG.info("Jarvis pronto. Fonte=%s limite=%.2f", AUDIO_SOURCE, WAKE_THRESHOLD)
         while self.running:
             stream = AudioStream()
@@ -265,8 +275,11 @@ class Jarvis:
                     if score < WAKE_THRESHOLD:
                         continue
                     LOG.info("Ativação detectada. score=%.3f", score)
-                    subprocess.run(["notify-send", "Jarvis", "Ouvindo..."], check=False)
-                    audio = self.record_command(stream, list(pre_roll))
+                    self.set_listening(True)
+                    try:
+                        audio = self.record_command(stream, list(pre_roll))
+                    finally:
+                        self.set_listening(False)
                     stream.close()
                     text = self.transcribe(audio)
                     if text:
