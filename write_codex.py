@@ -44,8 +44,8 @@ def main() -> int:
             continue
         address = client["address"]
         subprocess.run(["hyprctl", "dispatch", "focuswindow", f"address:{address}"], check=False)
-        subprocess.run(["wtype", "--", payload], check=True)
-        subprocess.run(["wtype", "-k", "RETURN"], check=True)
+        subprocess.run(["wtype", payload], check=True)
+        subprocess.run(["wtype", "\n"], check=True)
         return 0
     return 3
 
