@@ -102,14 +102,22 @@ def interpret_command(text: str, now: datetime | None = None) -> CommandResult:
         ("autoclicker", ["autoclicker", "auto clicker", "auto clique", "cliques automáticos", "cliques automaticos", "iniciar cliques"], "Iniciando cliques automáticos."),
         ("consumo", ["consumo", "consumo do pc", "status do pc", "cpu ram", "cpu e ram", "temperatura do pc", "recursos do pc"], "Mostrando consumo do PC."),
         ("notebook", ["notebook", "abrir notebook", "conectar notebook", "ssh notebook", "acessar notebook"], "Abrindo conexão com notebook."),
-        ("parar3monitor", ["parar 3 monitor", "parar três monitor", "parar tres monitor", "parar monitores", "encerrar moonlight", "fechar moonlight", "desligar monitor remoto"], "Encerrando monitor remoto."),
+        ("parar3monitor", ["parar 3 monitor", "parar terceiro monitor", "parar três monitor", "parar tres monitor", "parar monitores", "desativar 3 monitor", "desativar terceiro monitor", "desative o terceiro monitor", "desligar terceiro monitor", "desligue o terceiro monitor", "encerrar moonlight", "fechar moonlight", "desligar monitor remoto"], "Encerrando monitor remoto."),
         ("pesados", ["pesados", "processos pesados", "programas pesados", "processos que mais usam", "ver processos"], "Mostrando processos pesados."),
         ("padrao", ["padrão", "padrao", "modo padrão", "modo padrao", "sessão padrão", "sessao padrao", "restaurar sessão", "restaurar sessao", "modo normal"], "Restaurando sessão padrão."),
         ("resfriar", ["resfriar", "esfriar", "resfriar pc", "esfriar pc", "reduzir temperatura", "baixar temperatura", "reduzir calor", "modo frio"], "Reduzindo temperatura sem fechar aplicativos."),
+        ("rede", ["rede", "status da rede", "status da internet", "ver minha rede", "internet", "conexão", "conexao"], "Mostrando status da rede."),
     ]
+    if any(verb in command for verb in ("desativ", "deslig", "parar", "pare", "encerrar", "fechar")) and "monitor" in command:
+        return CommandResult("Encerrando monitor remoto.", [str(Path.home() / ".local/bin/parar3monitor")])
     for script, aliases, response in script_commands:
         if any(alias in command for alias in aliases):
             return CommandResult(response, [str(Path.home() / ".local/bin" / script)])
+
+    if any(alias in command for alias in ("codex", "abrir codex", "iniciar codex", "abrir o codex")):
+        return CommandResult("Abrindo Codex.", ["kitty", "-e", "codex"])
+    if any(alias in command for alias in ("copilot", "abrir copilot", "iniciar copilot", "abrir o copilot")):
+        return CommandResult("Abrindo Copilot.", ["kitty", "-e", "copilot"])
 
     if "que horas" in command or command == "horas":
         return CommandResult(f"Agora são {now:%H} horas e {now:%M} minutos.")
@@ -133,7 +141,8 @@ def interpret_command(text: str, now: datetime | None = None) -> CommandResult:
         return CommandResult(
             "Posso abrir aplicativos e terminal, pesquisar, informar hora e data, controlar volume e música, "
             "ativar performance, atualizar layout, usar notebook como monitor, abrir PC remoto, iniciar autoclicker, "
-            "mostrar consumo e processos pesados, conectar notebook, parar monitor remoto, restaurar sessão padrão e resfriar o PC."
+            "mostrar consumo e processos pesados, conectar notebook, parar monitor remoto, restaurar sessão padrão, "
+            "resfriar o PC, consultar rede, abrir Codex e abrir Copilot."
         )
 
     search = re.sub(r"^(pesquise|pesquisar|procure|procurar)( por)?\s+", "", command).strip()

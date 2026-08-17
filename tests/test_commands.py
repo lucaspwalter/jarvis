@@ -27,6 +27,9 @@ class CommandTests(unittest.TestCase):
         self.assertEqual(interpret_command("conecte ao notebook").action[-1], "/home/lucas/.local/bin/notebook")
         self.assertEqual(interpret_command("abra o pc remoto").action[-1], "/home/lucas/.local/bin/pc-remoto")
         self.assertEqual(interpret_command("ative o terceiro monitor").action[-1], "/home/lucas/.local/bin/3monitor")
+        self.assertEqual(interpret_command("desative o terceiro monitor").action[-1], "/home/lucas/.local/bin/parar3monitor")
+        self.assertEqual(interpret_command("mostre o status da rede").action[-1], "/home/lucas/.local/bin/rede")
+        self.assertEqual(interpret_command("abra o Codex").action, ["kitty", "-e", "codex"])
 
     def test_capabilities_includes_dashboard_commands(self):
         response = interpret_command("o que você pode fazer").response
