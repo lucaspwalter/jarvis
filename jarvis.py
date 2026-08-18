@@ -47,7 +47,7 @@ MAX_COMMAND_SECONDS = 5.0
 MIN_COMMAND_SECONDS = 0.5
 AI_URL = os.environ.get("JARVIS_AI_URL", "http://127.0.0.1:11434/api/generate")
 AI_MODEL = os.environ.get("JARVIS_AI_MODEL", "qwen2.5:1.5b")
-AI_TIMEOUT = float(os.environ.get("JARVIS_AI_TIMEOUT", "6.0"))
+AI_TIMEOUT = float(os.environ.get("JARVIS_AI_TIMEOUT", "12.0"))
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(message)s")
 LOG = logging.getLogger("jarvis")
