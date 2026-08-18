@@ -47,7 +47,7 @@ MAX_COMMAND_SECONDS = 5.0
 MIN_COMMAND_SECONDS = 0.5
 AI_URL = os.environ.get("JARVIS_AI_URL", "http://127.0.0.1:11434/api/generate")
 AI_MODEL = os.environ.get("JARVIS_AI_MODEL", "qwen2.5:1.5b")
-AI_TIMEOUT = float(os.environ.get("JARVIS_AI_TIMEOUT", "0.8"))
+AI_TIMEOUT = float(os.environ.get("JARVIS_AI_TIMEOUT", "6.0"))
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(message)s")
 LOG = logging.getLogger("jarvis")
@@ -96,7 +96,7 @@ def ai_interpret_command(text: str) -> str | None:
         "prompt": prompt,
         "stream": False,
         "format": "json",
-        "keep_alive": "60s",
+        "keep_alive": "600s",
         "options": {"temperature": 0, "num_predict": 24},
     }).encode()
     try:
@@ -370,7 +370,7 @@ def interpret_command(text: str, now: datetime | None = None) -> CommandResult:
     command = re.sub(r"\b(pose|poze)\b", "pause", command)
     command = re.sub(r"\bpalos\b", "pause", command)
     command = re.sub(r"\bamidia\b", "midia", command)
-    command = command.replace("fadi fox", "firefox").replace("fe de foco", "firefox").replace("grom", "chrome")
+    command = command.replace("fadi fox", "firefox").replace("fe de foco", "firefox").replace("raposa", "firefox").replace("grom", "chrome")
     now = now or datetime.now()
 
     applications = {
