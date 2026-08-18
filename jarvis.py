@@ -10,6 +10,7 @@ import os
 import re
 import signal
 import subprocess
+import sys
 import tempfile
 import threading
 import time
@@ -52,6 +53,8 @@ MIN_COMMAND_SECONDS = 0.5
 AI_URL = os.environ.get("JARVIS_AI_URL", "http://127.0.0.1:11434/api/generate")
 AI_MODEL = os.environ.get("JARVIS_AI_MODEL", "qwen2.5:0.5b")
 AI_TIMEOUT = float(os.environ.get("JARVIS_AI_TIMEOUT", "12.0"))
+PUBLIC_MODE = os.environ.get("JARVIS_PUBLIC_MODE", "0") == "1"
+UNSAFE_MODE = os.environ.get("JARVIS_UNSAFE", "0") == "1"
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(message)s")
 LOG = logging.getLogger("jarvis")
@@ -199,6 +202,27 @@ def detached(command: list[str]) -> None:
         stderr=subprocess.DEVNULL,
         start_new_session=True,
     )
+
+
+def requires_permission(action: list[str]) -> bool:
+    """Ações com efeito externo pedem confirmação no modo público."""
+    harmless = {"playerctl", "wpctl"}
+    return bool(action) and action[0] not in harmless
+
+
+def request_permission(action: list[str], description: str) -> bool:
+    helper = BASE_DIR / "permission_prompt.py"
+    try:
+        result = subprocess.run(
+            ["kitty", "--title", "Jarvis - autorização", "-e", sys.executable, str(helper),
+             json.dumps(action), description],
+            stdin=subprocess.DEVNULL,
+            timeout=60,
+            check=False,
+        )
+        return result.returncode == 0
+    except (OSError, subprocess.TimeoutExpired):
+        return False
 
 
 @dataclass(frozen=True)
@@ -905,7 +929,7 @@ class Jarvis:
 
     def execute(self, text: str) -> None:
         LOG.info("Comando reconhecido: %s", text)
-        result = interpret_command(text)
+        result = CommandResult("Não entendi. Diga novamente.") if PUBLIC_MODE else interpret_command(text)
         learned_target = None
         if result.action is None and result.response.startswith("Não entendi"):
             interpreted = ai_interpret_command(text)
@@ -916,6 +940,10 @@ class Jarvis:
                     result = interpreted_result
                     learned_target = interpreted
         if result.action:
+            if PUBLIC_MODE and not UNSAFE_MODE and requires_permission(result.action):
+                if not request_permission(result.action, result.response):
+                    self.speak("Ação cancelada.")
+                    return
             try:
                 detached(result.action)
             except OSError as error:

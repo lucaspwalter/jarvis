@@ -44,6 +44,27 @@ Os modelos de wake word, Piper e Whisper devem estar disponíveis nos caminhos c
 
 Diga “Jarvis” e, depois, o comando. Para ditar no Codex já aberto, diga “Jarvis, digite para mim”, aguarde a resposta e fale o texto.
 
+## Modo público
+
+O modo público usa Ollama para interpretar todos os comandos. Ações com efeito
+externo abrem um terminal de autorização e só executam após `y`/`s`.
+
+```bash
+JARVIS_PUBLIC_MODE=1 .venv/bin/python jarvis.py
+```
+
+### Modo unsafe
+
+Use somente em computador confiável. Ele remove a confirmação visual das ações
+já cadastradas pelo Jarvis; não transforma Ollama em shell livre.
+
+```bash
+JARVIS_PUBLIC_MODE=1 JARVIS_UNSAFE=1 .venv/bin/python jarvis.py
+```
+
+Ollama nunca recebe acesso direto ao shell. O código local continua controlando
+quais ações podem ser executadas.
+
 ## Estrutura
 
 ```text
