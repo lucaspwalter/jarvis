@@ -1,4 +1,5 @@
 import sys
+import tempfile
 import unittest
 from unittest.mock import patch
 from datetime import datetime
@@ -6,7 +7,7 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
-from jarvis import ALL_COMMAND_VARIATIONS, CODEX_WRITE_VARIATIONS, MEDIA_ERROR_VARIATIONS, MEDIA_VARIATIONS, _word_variants, add_honorific, ai_interpret_command, codex_write_payload, enhance_command_audio, expand_command_variations, interpret_command, is_codex_write_request, is_quiet_command, remove_dictation_prompt
+from jarvis import ALL_COMMAND_VARIATIONS, CODEX_WRITE_VARIATIONS, MEDIA_ERROR_VARIATIONS, MEDIA_VARIATIONS, _word_variants, add_honorific, ai_interpret_command, codex_write_payload, enhance_command_audio, expand_command_variations, interpret_command, is_codex_write_request, is_quiet_command, remember_learned_variation, remove_dictation_prompt
 
 
 class CommandTests(unittest.TestCase):
@@ -125,6 +126,22 @@ class CommandTests(unittest.TestCase):
                 return b'{"response":"{\\"command\\":\\"abrir firefox\\",\\"confidence\\":0.99}"}'
         with patch("jarvis.urlopen", return_value=FakeResponse()):
             self.assertEqual(ai_interpret_command("abra a raposa"), "abrir firefox")
+
+    def test_ai_learned_variation_persists_and_executes(self):
+        import jarvis
+        with tempfile.TemporaryDirectory() as directory:
+            old_path = jarvis.LEARNED_VARIATIONS_PATH
+            jarvis.LEARNED_VARIATIONS_PATH = Path(directory) / "learned.json"
+            for function in (jarvis._load_learned_variations, jarvis._learned_variation_index):
+                function.__dict__.pop("_cached", None)
+            try:
+                self.assertTrue(remember_learned_variation("Jarvis, abre a raposa", "abrir firefox"))
+                self.assertEqual(interpret_command("abre a raposa").action, ["firefox"])
+                self.assertIn("abre a raposa", jarvis.LEARNED_VARIATIONS_PATH.read_text(encoding="utf-8"))
+            finally:
+                jarvis.LEARNED_VARIATIONS_PATH = old_path
+                for function in (jarvis._load_learned_variations, jarvis._learned_variation_index):
+                    function.__dict__.pop("_cached", None)
 
     def test_honorific(self):
         self.assertEqual(add_honorific("Sistema online."), "Senhor, Sistema online.")

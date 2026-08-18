@@ -11,6 +11,7 @@ import re
 import signal
 import subprocess
 import tempfile
+import threading
 import time
 import unicodedata
 import wave
@@ -35,6 +36,7 @@ PIPER_MODEL = MODELS_DIR / "piper" / "pt_BR-cadu-medium.onnx"
 WHISPER_SMALL_ROOT = Path.home() / ".cache/huggingface/hub/models--Systran--faster-whisper-small/snapshots"
 WHISPER_MEDIUM_ROOT = Path.home() / ".cache/huggingface/hub/models--Systran--faster-whisper-medium/snapshots"
 LISTENING_STATE = Path(os.environ.get("XDG_RUNTIME_DIR", f"/run/user/{os.getuid()}")) / "jarvis-listening"
+LEARNED_VARIATIONS_PATH = Path(os.environ.get("XDG_CONFIG_HOME", Path.home() / ".config")) / "jarvis" / "learned_variations.json"
 AUDIO_SOURCE = "jarvis_mic"
 SAMPLE_RATE = 16_000
 FRAME_SAMPLES = 1_280
@@ -114,6 +116,61 @@ def ai_interpret_command(text: str) -> str | None:
     except (OSError, ValueError, TypeError, json.JSONDecodeError):
         LOG.debug("IA local indisponível ou resposta inválida", exc_info=True)
         return None
+
+
+def _load_learned_variations() -> dict[str, set[str]]:
+    if hasattr(_load_learned_variations, "_cached"):
+        return _load_learned_variations._cached
+    result: dict[str, set[str]] = {}
+    try:
+        data = json.loads(LEARNED_VARIATIONS_PATH.read_text(encoding="utf-8"))
+        if isinstance(data, dict):
+            for command, aliases in data.items():
+                if isinstance(command, str) and isinstance(aliases, list):
+                    values = {normalize(alias) for alias in aliases if isinstance(alias, str) and normalize(alias)}
+                    if values:
+                        result[normalize(command)] = values
+    except (OSError, ValueError, TypeError, json.JSONDecodeError):
+        LOG.debug("Variações aprendidas ausentes ou inválidas", exc_info=True)
+    _load_learned_variations._cached = result
+    return result
+
+
+def _learned_variation_index() -> dict[str, str]:
+    if hasattr(_learned_variation_index, "_cached"):
+        return _learned_variation_index._cached
+    index: dict[str, str] = {}
+    for command, aliases in _load_learned_variations().items():
+        for alias in aliases:
+            index.setdefault(alias, command)
+    _learned_variation_index._cached = index
+    return index
+
+
+def remember_learned_variation(spoken: str, command: str) -> bool:
+    """Persiste só mapeamento confirmado pela IA para comando existente."""
+    alias = normalize(re.sub(r"^(ei +)?jarvis\b", "", spoken, flags=re.IGNORECASE)).strip()
+    target = normalize(command)
+    if not alias or not target or alias == target or target not in {normalize(value) for value in _ai_catalog()}:
+        return False
+    existing = _learned_variation_index().get(alias)
+    if existing and existing != target:
+        LOG.warning("Variação não salva: conflito %r (%s/%s)", alias, existing, target)
+        return False
+    for known_command, aliases in _all_generated_variations.items():
+        if alias in aliases and normalize(known_command) != target:
+            LOG.warning("Variação não salva: já pertence a %s", known_command)
+            return False
+    learned = _load_learned_variations()
+    learned.setdefault(target, set()).add(alias)
+    LEARNED_VARIATIONS_PATH.parent.mkdir(parents=True, exist_ok=True)
+    temporary = LEARNED_VARIATIONS_PATH.with_suffix(".tmp")
+    payload = {key: sorted(values) for key, values in sorted(learned.items())}
+    temporary.write_text(json.dumps(payload, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+    temporary.replace(LEARNED_VARIATIONS_PATH)
+    _learned_variation_index._cached = {alias: key for key, values in learned.items() for alias in values}
+    LOG.info("Variação aprendida: %r -> %s", alias, target)
+    return True
 
 
 def add_honorific(text: str) -> str:
@@ -471,6 +528,10 @@ def interpret_command(text: str, now: datetime | None = None) -> CommandResult:
     command = command.replace("fadi fox", "firefox").replace("fe de foco", "firefox").replace("raposa", "firefox").replace("grom", "chrome")
     now = now or datetime.now()
 
+    learned_target = _learned_variation_index().get(command)
+    if learned_target and learned_target != command:
+        return interpret_command(learned_target, now)
+
     applications = {
         "google chrome": ["google-chrome-stable"],
         "google": ["google-chrome-stable"],
@@ -825,11 +886,15 @@ class Jarvis:
     def execute(self, text: str) -> None:
         LOG.info("Comando reconhecido: %s", text)
         result = interpret_command(text)
+        learned_target = None
         if result.action is None and result.response.startswith("Não entendi"):
             interpreted = ai_interpret_command(text)
             if interpreted:
                 LOG.info("IA local interpretou como: %s", interpreted)
-                result = interpret_command(interpreted)
+                interpreted_result = interpret_command(interpreted)
+                if interpreted_result.action is not None or not interpreted_result.response.startswith("Não entendi"):
+                    result = interpreted_result
+                    learned_target = interpreted
         if result.action:
             try:
                 detached(result.action)
@@ -838,6 +903,13 @@ class Jarvis:
                 self.speak("Não consegui executar esse comando.")
                 return
         self.speak(result.response)
+        if learned_target:
+            threading.Thread(
+                target=remember_learned_variation,
+                args=(text, learned_target),
+                name="jarvis-learn-variation",
+                daemon=True,
+            ).start()
 
     def run(self) -> None:
         self.set_listening(False)
