@@ -132,6 +132,17 @@ class CommandTests(unittest.TestCase):
         with patch("jarvis.urlopen", return_value=FakeResponse()):
             self.assertEqual(ai_interpret_command("abra a raposa"), "abrir firefox")
 
+    def test_ai_rejects_unrelated_hallucination(self):
+        class FakeResponse:
+            def __enter__(self):
+                return self
+            def __exit__(self, *args):
+                return False
+            def read(self):
+                return b'{"response":"{\\"command\\":\\"abrir terminal\\",\\"confidence\\":0.99}"}'
+        with patch("jarvis.urlopen", return_value=FakeResponse()):
+            self.assertIsNone(ai_interpret_command("a conta de ar o planejamento"))
+
     def test_ai_learned_variation_persists_and_executes(self):
         import jarvis
         with tempfile.TemporaryDirectory() as directory:

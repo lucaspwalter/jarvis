@@ -112,6 +112,12 @@ def ai_interpret_command(text: str) -> str | None:
         confidence = float(parsed.get("confidence", 0))
         if confidence < 0.78 or command not in catalog:
             return None
+        spoken_tokens = set(normalize(spoken).split())
+        command_tokens = set(normalize(command).split())
+        # Bloqueia alucinação sem qualquer sinal lexical do comando escolhido.
+        if not any(len(token) >= 3 and any(other.startswith(token[:3]) for other in command_tokens) for token in spoken_tokens):
+            LOG.warning("IA rejeitada: sem relação lexical entre fala e comando (%r -> %r)", spoken, command)
+            return None
         return command
     except (OSError, ValueError, TypeError, json.JSONDecodeError):
         LOG.debug("IA local indisponível ou resposta inválida", exc_info=True)
