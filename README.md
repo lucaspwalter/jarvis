@@ -65,15 +65,6 @@ JARVIS_PUBLIC_MODE=1 JARVIS_UNSAFE=1 .venv/bin/python jarvis.py
 Ollama nunca recebe acesso direto ao shell. O código local continua controlando
 quais ações podem ser executadas.
 
-## Estrutura
-
-```text
-jarvis.py              Assistente, captura, transcrição e comandos
-write_codex.py         Digitação na janela existente do Codex
-tests/test_commands.py Testes de interpretação
-requirements.txt       Dependências Python
-```
-
 ## Licença
 
 Ainda não definida.
