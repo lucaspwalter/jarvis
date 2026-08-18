@@ -484,13 +484,10 @@ EXTRA_VERBS = ("mostrar", "mostre", "mostra", "ver", "veja", "exibir", "exiba", 
 
 def extra_command_result(command: str) -> CommandResult | None:
     matches = []
-    if not hasattr(extra_command_result, "_variation_index"):
-        index: dict[str, set[str]] = {}
-        for phrase, aliases in EXTRA_COMMAND_VARIATIONS.items():
-            for alias in aliases:
-                index.setdefault(alias, set()).add(phrase)
-        extra_command_result._variation_index = index
-    variation_matches = extra_command_result._variation_index.get(command, set())
+    # Consulta cada conjunto sem duplicar 200 mil strings em outro índice.
+    variation_matches = {
+        phrase for phrase, aliases in EXTRA_COMMAND_VARIATIONS.items() if command in aliases
+    }
     for phrase, shell, response in EXTRA_COMMAND_SPECS:
         if len(variation_matches) == 1 and phrase in variation_matches:
             return CommandResult(response, ["kitty", "-e", "bash", "-lc", f"{shell}; read -rp 'Enter para fechar...' _"])
