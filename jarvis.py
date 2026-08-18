@@ -156,6 +156,8 @@ def is_quiet_command(text: str) -> bool:
     command = normalize(text)
     return any(phrase in command for phrase in (
         "cala boca",
+        "cala muka",
+        "cala boco",
         "cale a boca",
         "cala se",
         "silencio jarvis",
@@ -622,6 +624,9 @@ class Jarvis:
         stripped_small = re.sub(r"^(ei +)?jarvis\b", "", small_text, flags=re.IGNORECASE).strip(" ,.")
         if not stripped_small:
             LOG.info("Transcrição escolhida: small (somente ativação, %.2fs)", time.monotonic() - started)
+            return small_text
+        if re.search(r"\bcala\b", normalize(small_text)) and "jarvis" in normalize(small_text):
+            LOG.info("Transcrição escolhida: small (cancelamento, %.2fs)", time.monotonic() - started)
             return small_text
         if self.command_is_understood(small_text):
             LOG.info("Transcrição escolhida: small (%.2fs)", time.monotonic() - started)
