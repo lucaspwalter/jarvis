@@ -491,7 +491,6 @@ def extra_command_result(command: str) -> CommandResult | None:
                 index.setdefault(alias, set()).add(phrase)
         extra_command_result._variation_index = index
     variation_matches = extra_command_result._variation_index.get(command, set())
-    targets = [re.sub(r"^(mostrar|abrir|testar|executar|rodar|reiniciar|silenciar|ativar|capturar|gravar|parar|validar)\s+", "", phrase) for phrase, _, _ in EXTRA_COMMAND_SPECS]
     for phrase, shell, response in EXTRA_COMMAND_SPECS:
         if len(variation_matches) == 1 and phrase in variation_matches:
             return CommandResult(response, ["kitty", "-e", "bash", "-lc", f"{shell}; read -rp 'Enter para fechar...' _"])
@@ -500,7 +499,8 @@ def extra_command_result(command: str) -> CommandResult | None:
         stem = verb[: max(3, len(verb) - 2)]
         target_match = re.search(rf"(?<!\w){re.escape(target)}(?!\w)", command)
         verb_match = re.search(rf"\b{re.escape(stem)}", command)
-        if target_match and (targets.count(target) == 1 or verb_match):
+        # Nunca execute só porque alvo aparece: transcrição pode trazer fala externa.
+        if target_match and verb_match:
             matches.append((len(target.split()), len(target), shell, response))
     if not matches:
         return None

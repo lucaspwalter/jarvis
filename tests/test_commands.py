@@ -116,6 +116,10 @@ class CommandTests(unittest.TestCase):
         self.assertIsNone(result.action)
         self.assertIn("Diga novamente", result.response)
 
+    def test_external_hallucinated_phrase_does_not_restart_jarvis(self):
+        result = interpret_command("Jarvis. Em Ser Jarvis, thanks for your help. Thanks for watching.")
+        self.assertIsNone(result.action)
+
     def test_ai_only_returns_known_intent(self):
         class FakeResponse:
             def __enter__(self):
