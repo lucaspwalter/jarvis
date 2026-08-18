@@ -38,6 +38,7 @@ WHISPER_MEDIUM_ROOT = Path.home() / ".cache/huggingface/hub/models--Systran--fas
 LISTENING_STATE = Path(os.environ.get("XDG_RUNTIME_DIR", f"/run/user/{os.getuid()}")) / "jarvis-listening"
 LEARNED_VARIATIONS_PATH = Path(os.environ.get("XDG_CONFIG_HOME", Path.home() / ".config")) / "jarvis" / "learned_variations.json"
 AUDIO_SOURCE = "jarvis_mic"
+NORMAL_AUDIO_SOURCE = "alsa_input.pci-0000_00_1f.3.analog-stereo"
 SAMPLE_RATE = 16_000
 FRAME_SAMPLES = 1_280
 FRAME_BYTES = FRAME_SAMPLES * 2
@@ -759,7 +760,14 @@ class Jarvis:
             raw_path = Path(temporary.name)
         with tempfile.NamedTemporaryFile(prefix="jarvis-robot-", suffix=".wav", delete=False) as temporary:
             processed_path = Path(temporary.name)
+        source_was_muted = False
         try:
+            previous_mute = subprocess.run(
+                ["pactl", "get-source-mute", NORMAL_AUDIO_SOURCE],
+                capture_output=True, text=True, check=False,
+            ).stdout
+            source_was_muted = "yes" in previous_mute.lower()
+            subprocess.run(["pactl", "set-source-mute", NORMAL_AUDIO_SOURCE, "1"], check=False)
             with wave.open(str(raw_path), "wb") as wav_file:
                 self.voice.synthesize_wav(text, wav_file)
             effect = (
@@ -774,6 +782,10 @@ class Jarvis:
             playback_path = processed_path if filtered.returncode == 0 else raw_path
             subprocess.run(["pw-play", str(playback_path)], check=False)
         finally:
+            subprocess.run(
+                ["pactl", "set-source-mute", NORMAL_AUDIO_SOURCE, "1" if source_was_muted else "0"],
+                check=False,
+            )
             raw_path.unlink(missing_ok=True)
             processed_path.unlink(missing_ok=True)
 
