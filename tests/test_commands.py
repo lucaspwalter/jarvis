@@ -6,7 +6,7 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
-from jarvis import ALL_COMMAND_VARIATIONS, CODEX_WRITE_VARIATIONS, MEDIA_ERROR_VARIATIONS, MEDIA_VARIATIONS, add_honorific, ai_interpret_command, codex_write_payload, enhance_command_audio, expand_command_variations, interpret_command, is_codex_write_request, is_quiet_command, remove_dictation_prompt
+from jarvis import ALL_COMMAND_VARIATIONS, CODEX_WRITE_VARIATIONS, MEDIA_ERROR_VARIATIONS, MEDIA_VARIATIONS, _word_variants, add_honorific, ai_interpret_command, codex_write_payload, enhance_command_audio, expand_command_variations, interpret_command, is_codex_write_request, is_quiet_command, remove_dictation_prompt
 
 
 class CommandTests(unittest.TestCase):
@@ -67,6 +67,11 @@ class CommandTests(unittest.TestCase):
         self.assertTrue(all(len(aliases) == len(set(aliases)) for aliases in ALL_COMMAND_VARIATIONS.values()))
         combined = [alias for aliases in ALL_COMMAND_VARIATIONS.values() for alias in aliases]
         self.assertEqual(len(combined), len(set(combined)))
+
+    def test_transcription_variants_are_lexical(self):
+        variants = _word_variants("extender")
+        self.assertIn("estender", variants)
+        self.assertNotIn("extenderrr", variants)
 
     def test_write_into_existing_codex(self):
         result = interpret_command("Jarvis, digite para mim: abra o terminal amanhã")

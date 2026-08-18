@@ -334,11 +334,32 @@ EXTRA_COMMAND_SPECS = [
 
 
 def _word_variants(word: str) -> tuple[str, ...]:
-    """Erros comuns de transcrição, sempre normalizados e sem repetição."""
-    variants = {word, word[:-1], word.replace("r", "rr", 1), word.replace("s", "z", 1)}
-    if len(word) > 3:
-        variants.add(word[:1] + word[2:] + word[1:2])
-        variants.add(word[:2] + word[3:] + word[2:3])
+    """Erros fonéticos/lexicais plausíveis; nunca duplica letras artificialmente."""
+    normalized = normalize(word)
+    variants = {normalized}
+    lexical = {
+        "extender": ("estender", "entender", "atender"),
+        "monitor": ("monitora", "monitorar", "monitores"),
+        "audio": ("odio", "radio"),
+        "mostrar": ("mostra", "mostre", "demonstrar"),
+        "abrir": ("abra", "abri", "abriu"),
+        "reiniciar": ("reinicie", "reinicia", "iniciar"),
+        "terminal": ("terminar", "terminei"),
+        "firefox": ("fire fox", "fadi fox", "raposa"),
+        "memoria": ("memória", "memoria ram", "lemoria"),
+        "temperatura": ("temperatura", "temperamento", "temperatura do pc"),
+    }
+    variants.update(lexical.get(normalized, ()))
+    replacements = (
+        ("x", "ch"), ("x", "s"), ("x", "z"), ("c", "k"), ("c", "s"),
+        ("qu", "k"), ("g", "j"), ("j", "g"), ("v", "b"), ("b", "v"),
+        ("d", "t"), ("t", "d"), ("p", "b"), ("b", "p"), ("m", "n"),
+        ("n", "m"), ("r", "l"), ("l", "r"), ("f", "v"), ("e", "i"),
+        ("i", "e"), ("o", "u"), ("u", "o"), ("a", "e"), ("e", "a"),
+    )
+    for source, target in replacements:
+        if source in normalized:
+            variants.add(normalized.replace(source, target, 1))
     return tuple(sorted(normalize(value) for value in variants if value))
 
 
