@@ -675,8 +675,9 @@ class Jarvis:
                         text = self.transcribe(audio)
                         if text and normalize(re.sub(r"^(ei +)?jarvis\b", "", text, flags=re.IGNORECASE)).strip(" ,."):
                             if is_quiet_command(text):
-                                self.speak("Desculpa, senhor.")
+                                self.speak("Senhor, me desculpe.")
                                 self.listening_enabled = True
+                                LOG.info("Chamada atual encerrada; escuta permanece ativa.")
                             elif is_codex_write_request(text) and codex_write_payload(text) is None:
                                 self.speak("Pode ditar.")
                                 time.sleep(0.2)
