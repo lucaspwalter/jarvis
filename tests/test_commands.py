@@ -46,6 +46,7 @@ class CommandTests(unittest.TestCase):
         self.assertEqual(interpret_command("ative o terceiro monitor").action[-1], "/home/lucas/.local/bin/3monitor")
         self.assertEqual(interpret_command("desative o terceiro monitor").action[-1], "/home/lucas/.local/bin/parar3monitor")
         self.assertEqual(interpret_command("desatime terceiro monitor").action[-1], "/home/lucas/.local/bin/parar3monitor")
+        self.assertEqual(interpret_command("encerre o terceiro monitor").action[-1], "/home/lucas/.local/bin/parar3monitor")
         self.assertEqual(interpret_command("ative terceira monitora").action[-1], "/home/lucas/.local/bin/3monitor")
         self.assertEqual(interpret_command("mostre o status da rede").action[-1], "/home/lucas/.local/bin/rede")
         self.assertEqual(interpret_command("abra o Codex").action, ["kitty", "--directory", "/home/lucas", "-e", "codex", "--dangerously-bypass-approvals-and-sandbox"])

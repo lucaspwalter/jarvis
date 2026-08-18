@@ -524,6 +524,8 @@ def interpret_command(text: str, now: datetime | None = None) -> CommandResult:
     command = re.sub(r"\b(pousar|pousa|pouse)\b", "pausar", command)
     command = re.sub(r"\b(pose|poze)\b", "pause", command)
     command = re.sub(r"\bpalos\b", "pause", command)
+    if re.search(r"\b(encerre|encerrar|encerra)\b.*\b(monitora?|monitores?)\b", command):
+        command = re.sub(r"\b(encerre|encerrar|encerra)\b", "desative", command, count=1)
     command = re.sub(r"\bamidia\b", "midia", command)
     command = command.replace("fadi fox", "firefox").replace("fe de foco", "firefox").replace("raposa", "firefox").replace("grom", "chrome")
     now = now or datetime.now()
