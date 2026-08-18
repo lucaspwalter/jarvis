@@ -157,6 +157,9 @@ def remember_learned_variation(spoken: str, command: str) -> bool:
     if existing and existing != target:
         LOG.warning("Variação não salva: conflito %r (%s/%s)", alias, existing, target)
         return False
+    if any(alias == normalize(known) and normalize(known) != target for known in _ai_catalog()):
+        LOG.warning("Variação não salva: coincide com comando canônico %r", alias)
+        return False
     for known_command, aliases in _all_generated_variations.items():
         if alias in aliases and normalize(known_command) != target:
             LOG.warning("Variação não salva: já pertence a %s", known_command)
