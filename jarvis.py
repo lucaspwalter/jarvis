@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import argparse
+import gc
 import json
 import logging
 import math
@@ -557,10 +558,10 @@ class Jarvis:
             embedding_model_path=str(WAKE_MODELS_DIR / "embedding_model.onnx"),
         )
         small_path = self._find_whisper_model(WHISPER_SMALL_ROOT)
-        medium_path = self._find_whisper_model(WHISPER_MEDIUM_ROOT)
         self.whisper_small = WhisperModel(str(small_path), device="cpu", compute_type="int8", cpu_threads=12)
-        self.whisper_medium = WhisperModel(str(medium_path), device="cpu", compute_type="int8", cpu_threads=12)
-        LOG.info("Modelos de transcrição: small=%s medium=%s", small_path, medium_path)
+        self.medium_path = self._find_whisper_model(WHISPER_MEDIUM_ROOT)
+        self.whisper_medium: WhisperModel | None = None
+        LOG.info("Modelo inicial de transcrição: small=%s; medium sob demanda=%s", small_path, self.medium_path)
         self.voice: PiperVoice | None = PiperVoice.load(PIPER_MODEL)
         self.running = True
         self.listening_enabled = True
@@ -597,6 +598,12 @@ class Jarvis:
         finally:
             raw_path.unlink(missing_ok=True)
             processed_path.unlink(missing_ok=True)
+
+    def load_medium(self) -> WhisperModel:
+        if self.whisper_medium is None:
+            LOG.info("Carregando Whisper medium sob demanda.")
+            self.whisper_medium = WhisperModel(str(self.medium_path), device="cpu", compute_type="int8", cpu_threads=12)
+        return self.whisper_medium
 
     @staticmethod
     def set_listening(listening: bool) -> None:
@@ -696,7 +703,13 @@ class Jarvis:
         if self.command_is_understood(small_text):
             LOG.info("Transcrição escolhida: small (%.2fs)", time.monotonic() - started)
             return small_text
-        medium_text = self.transcribe_with(self.whisper_medium, audio)
+        medium = self.load_medium()
+        try:
+            medium_text = self.transcribe_with(medium, audio)
+        finally:
+            self.whisper_medium = None
+            gc.collect()
+            LOG.info("Whisper medium liberado da memória.")
         LOG.info("Transcrição escolhida: medium (%.2fs)", time.monotonic() - started)
         return medium_text or small_text
 
