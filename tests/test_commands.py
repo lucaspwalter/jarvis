@@ -6,7 +6,7 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
-from jarvis import CODEX_WRITE_VARIATIONS, MEDIA_ERROR_VARIATIONS, MEDIA_VARIATIONS, add_honorific, ai_interpret_command, codex_write_payload, enhance_command_audio, expand_command_variations, interpret_command, is_codex_write_request, is_quiet_command, remove_dictation_prompt
+from jarvis import ALL_COMMAND_VARIATIONS, CODEX_WRITE_VARIATIONS, MEDIA_ERROR_VARIATIONS, MEDIA_VARIATIONS, add_honorific, ai_interpret_command, codex_write_payload, enhance_command_audio, expand_command_variations, interpret_command, is_codex_write_request, is_quiet_command, remove_dictation_prompt
 
 
 class CommandTests(unittest.TestCase):
@@ -60,6 +60,13 @@ class CommandTests(unittest.TestCase):
         self.assertGreaterEqual(len(MEDIA_VARIATIONS), 1000)
         self.assertGreaterEqual(len(MEDIA_ERROR_VARIATIONS), 1000)
         self.assertGreaterEqual(len(CODEX_WRITE_VARIATIONS), 1000)
+
+    def test_all_catalog_commands_have_2000_unique_variations(self):
+        self.assertGreaterEqual(len(ALL_COMMAND_VARIATIONS), 112)
+        self.assertTrue(all(len(aliases) == 2000 for aliases in ALL_COMMAND_VARIATIONS.values()))
+        self.assertTrue(all(len(aliases) == len(set(aliases)) for aliases in ALL_COMMAND_VARIATIONS.values()))
+        combined = [alias for aliases in ALL_COMMAND_VARIATIONS.values() for alias in aliases]
+        self.assertEqual(len(combined), len(set(combined)))
 
     def test_write_into_existing_codex(self):
         result = interpret_command("Jarvis, digite para mim: abra o terminal amanhã")

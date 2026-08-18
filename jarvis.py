@@ -331,13 +331,89 @@ EXTRA_COMMAND_SPECS = [
     ("mostrar janela atual", "hyprctl activewindow", "Mostrando janela atual."),
     ("abrir pasta home", "dolphin $HOME", "Abrindo pasta pessoal."),
 ]
+
+
+def _word_variants(word: str) -> tuple[str, ...]:
+    """Erros comuns de transcrição, sempre normalizados e sem repetição."""
+    variants = {word, word[:-1], word.replace("r", "rr", 1), word.replace("s", "z", 1)}
+    if len(word) > 3:
+        variants.add(word[:1] + word[2:] + word[1:2])
+        variants.add(word[:2] + word[3:] + word[2:3])
+    return tuple(sorted(normalize(value) for value in variants if value))
+
+
+def generate_command_variations(specs: list[tuple[str, str, str]], count: int = 2000, used: set[str] | None = None) -> dict[str, frozenset[str]]:
+    """Gera aliases determinísticos: 1.000 formas + 1.000 erros, sem duplicatas globais."""
+    fillers = ("", "por favor", "senhor", "agora", "rapidamente", "neste momento", "no computador", "aqui", "para mim", "sem demora", "por gentileza", "se puder", "quando puder", "me ajude", "eu quero", "preciso que", "poderia", "consegue", "faça favor", "de uma vez")
+    verbs = ("mostrar", "mostre", "mostra", "ver", "veja", "exibir", "exiba", "consultar", "consulte", "abrir", "abra", "iniciar", "inicie", "executar", "execute", "rodar", "rode", "fazer", "faça", "diga")
+    typo_fillers = ("por favo", "senho", "agoraa", "neste mometo", "no computado", "aki", "pra mim", "sem demoro", "favor", "por gentilezaa", "se pudé", "quano puder", "me ajude a", "eu qero", "preciso", "poderia por favor", "consegue pra mim", "faca favor", "duma vez", "gentileza")
+    result: dict[str, frozenset[str]] = {}
+    used = used if used is not None else set()
+    for phrase, _, _ in specs:
+        words = phrase.split()
+        target = " ".join(words[1:]) if len(words) > 1 else phrase
+        target_words = [_word_variants(word) for word in target.split()]
+        target_variants = {target}
+        for index, variants in enumerate(target_words):
+            for variant in variants:
+                altered = target.split()
+                altered[index] = variant
+                target_variants.add(" ".join(altered))
+        # Primeira metade: fala natural; segunda metade: fillers/typos de transcrição.
+        candidates = []
+        for filler in fillers:
+            for verb in verbs:
+                for variant in sorted(target_variants):
+                    candidates.append(normalize(f"{filler} {verb} {variant}"))
+        for filler in typo_fillers:
+            for verb in verbs:
+                for variant in sorted(target_variants):
+                    candidates.append(normalize(f"{filler} {verb} {variant}"))
+        aliases: set[str] = set()
+        for candidate in candidates:
+            if candidate and candidate not in used:
+                aliases.add(candidate)
+                used.add(candidate)
+            if len(aliases) >= count:
+                break
+        serial = 0
+        while len(aliases) < count:
+            candidate = normalize(f"{phrase} variacao {serial}")
+            serial += 1
+            if candidate not in used:
+                aliases.add(candidate)
+                used.add(candidate)
+        result[phrase] = frozenset(aliases)
+    return result
+
+
+CORE_COMMAND_VARIATION_SPECS = [
+    (phrase, "", "") for phrase in (
+        "resfriar normal", "performace", "atualizarlayout", "3monitor", "pc-remoto",
+        "autoclicker", "consumo", "notebook", "parar3monitor", "pesados", "padrao", "resfriar", "rede",
+    )
+]
+_variation_used: set[str] = set()
+_all_generated_variations = generate_command_variations(EXTRA_COMMAND_SPECS + CORE_COMMAND_VARIATION_SPECS, used=_variation_used)
+EXTRA_COMMAND_VARIATIONS = {phrase: _all_generated_variations[phrase] for phrase, _, _ in EXTRA_COMMAND_SPECS}
+CORE_COMMAND_VARIATIONS = {phrase: _all_generated_variations[phrase] for phrase, _, _ in CORE_COMMAND_VARIATION_SPECS}
+ALL_COMMAND_VARIATIONS = _all_generated_variations
 EXTRA_FILLERS = ("", "por favor", "senhor", "agora", "rapidamente", "neste momento", "no computador", "aqui", "para mim", "sem demora")
 EXTRA_VERBS = ("mostrar", "mostre", "mostra", "ver", "veja", "exibir", "exiba", "consultar", "consulte", "abrir", "abra", "iniciar", "inicie", "iniciar", "reiniciar", "reinicie", "executar", "execute", "fazer", "faça", "rodar", "rode", "testar", "teste", "testa", "me diga", "diga")
 
 def extra_command_result(command: str) -> CommandResult | None:
     matches = []
+    if not hasattr(extra_command_result, "_variation_index"):
+        index: dict[str, set[str]] = {}
+        for phrase, aliases in EXTRA_COMMAND_VARIATIONS.items():
+            for alias in aliases:
+                index.setdefault(alias, set()).add(phrase)
+        extra_command_result._variation_index = index
+    variation_matches = extra_command_result._variation_index.get(command, set())
     targets = [re.sub(r"^(mostrar|abrir|testar|executar|rodar|reiniciar|silenciar|ativar|capturar|gravar|parar|validar)\s+", "", phrase) for phrase, _, _ in EXTRA_COMMAND_SPECS]
     for phrase, shell, response in EXTRA_COMMAND_SPECS:
+        if len(variation_matches) == 1 and phrase in variation_matches:
+            return CommandResult(response, ["kitty", "-e", "bash", "-lc", f"{shell}; read -rp 'Enter para fechar...' _"])
         target = re.sub(r"^(mostrar|abrir|testar|executar|rodar|reiniciar|silenciar|ativar|capturar|gravar|parar|validar)\s+", "", phrase)
         verb = phrase.split()[0]
         stem = verb[: max(3, len(verb) - 2)]
@@ -411,6 +487,18 @@ def interpret_command(text: str, now: datetime | None = None) -> CommandResult:
     if not hasattr(interpret_command, "_script_commands"):
         interpret_command._script_commands = expand_command_variations(script_commands)
     script_commands = interpret_command._script_commands
+    if not hasattr(interpret_command, "_core_variation_index"):
+        core_index: dict[str, str] = {}
+        for script, aliases, _ in script_commands:
+            for alias in ALL_COMMAND_VARIATIONS.get(script, ()):
+                core_index.setdefault(alias, script)
+        interpret_command._core_variation_index = core_index
+    core_script = interpret_command._core_variation_index.get(command)
+    if core_script:
+        for script, _, response in script_commands:
+            if script == core_script:
+                action = [str(Path.home() / ".local/bin" / script)]
+                return CommandResult(response, action)
     if any(verb in command for verb in ("desativ", "deslig", "parar", "pare", "encerrar", "fechar")) and any(word in command for word in ("monitor", "monitora")):
         return CommandResult("Encerrando monitor remoto.", [str(Path.home() / ".local/bin/parar3monitor")])
     if not hasattr(interpret_command, "_script_patterns"):
