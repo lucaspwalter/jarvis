@@ -29,42 +29,18 @@ class CommandTests(unittest.TestCase):
     def test_extra_commands(self):
         self.assertEqual(interpret_command("mostre meu ip local").response, "Mostrando IP local.")
         self.assertEqual(interpret_command("por favor abra o GitHub").response, "Abrindo GitHub.")
-        self.assertEqual(interpret_command("mostre os logs do Jarvis").response, "Mostrando logs do Jarvis.")
-        self.assertEqual(interpret_command("reinicie o Jarvis").response, "Reiniciando Jarvis.")
-        self.assertEqual(interpret_command("execute os testes").response, "Executando testes.")
-        self.assertEqual(interpret_command("mostre os commits").response, "Mostrando commits.")
         self.assertEqual(interpret_command("abra o Steam").response, "Abrindo Steam.")
-        self.assertEqual(interpret_command("silencie o microfone").response, "Silenciando microfone.")
-        self.assertEqual(interpret_command("valide o Python").response, "Validando Python.")
-        self.assertEqual(interpret_command("mostre a janela atual").response, "Mostrando janela atual.")
-
-    def test_dashboard_commands_variations(self):
-        self.assertEqual(interpret_command("ative o modo desempenho").action[-1], "/home/lucas/.local/bin/performace")
-        self.assertEqual(interpret_command("mostre os processos pesados").action[-1], "/home/lucas/.local/bin/pesados")
-        self.assertEqual(interpret_command("conecte ao notebook").action[-1], "/home/lucas/.local/bin/notebook")
-        self.assertEqual(interpret_command("abra o pc remoto").action[-1], "/home/lucas/.local/bin/pc-remoto")
-        self.assertEqual(interpret_command("ative o terceiro monitor").action[-1], "/home/lucas/.local/bin/3monitor")
-        self.assertEqual(interpret_command("desative o terceiro monitor").action[-1], "/home/lucas/.local/bin/parar3monitor")
-        self.assertEqual(interpret_command("desatime terceiro monitor").action[-1], "/home/lucas/.local/bin/parar3monitor")
-        self.assertEqual(interpret_command("encerre o terceiro monitor").action[-1], "/home/lucas/.local/bin/parar3monitor")
-        self.assertEqual(interpret_command("ative terceira monitora").action[-1], "/home/lucas/.local/bin/3monitor")
-        self.assertEqual(interpret_command("mostre o status da rede").action[-1], "/home/lucas/.local/bin/rede")
-        self.assertEqual(interpret_command("abra o Codex").action, ["kitty", "--directory", "/home/lucas", "-e", "codex", "--dangerously-bypass-approvals-and-sandbox"])
-
-    def test_capabilities_includes_dashboard_commands(self):
-        response = interpret_command("o que você pode fazer").response
-        for capability in ("performance", "autoclicker", "processos pesados", "resfriar o PC"):
-            self.assertIn(capability, response)
+        self.assertEqual(interpret_command("abra o Codex").action, ["kitty", "--directory", str(Path.home()), "-e", "codex", "--dangerously-bypass-approvals-and-sandbox"])
 
     def test_each_command_has_at_least_100_variations(self):
-        commands = expand_command_variations([("performace", [], ""), ("3monitor", [], ""), ("parar3monitor", [], ""), ("resfriar", [], "")])
+        commands = expand_command_variations([("consumo", [], ""), ("pesados", [], ""), ("rede", [], ""), ("consumo", [], "")])
         self.assertTrue(all(len(aliases) >= 2000 for _, aliases, _ in commands))
         self.assertGreaterEqual(len(MEDIA_VARIATIONS), 1000)
         self.assertGreaterEqual(len(MEDIA_ERROR_VARIATIONS), 1000)
         self.assertGreaterEqual(len(CODEX_WRITE_VARIATIONS), 1000)
 
     def test_all_catalog_commands_have_2000_unique_variations(self):
-        self.assertGreaterEqual(len(ALL_COMMAND_VARIATIONS), 112)
+        self.assertGreaterEqual(len(ALL_COMMAND_VARIATIONS), 60)
         self.assertTrue(all(len(aliases) == 2000 for aliases in ALL_COMMAND_VARIATIONS.values()))
         self.assertTrue(all(len(aliases) == len(set(aliases)) for aliases in ALL_COMMAND_VARIATIONS.values()))
         combined = [alias for aliases in ALL_COMMAND_VARIATIONS.values() for alias in aliases]

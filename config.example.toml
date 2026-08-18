@@ -1,0 +1,31 @@
+# Copie para config.toml e ajuste os valores do seu computador.
+# config.toml fica ignorado pelo Git.
+
+[paths]
+models_dir = "./models"
+piper_model = "./models/piper/pt_BR-cadu-medium.onnx"
+# Diretório de snapshots do faster-whisper ou caminho de um modelo baixado.
+whisper_small = "~/.cache/huggingface/hub/models--Systran--faster-whisper-small/snapshots"
+whisper_medium = "~/.cache/huggingface/hub/models--Systran--faster-whisper-medium/snapshots"
+
+[audio]
+# Nome da fonte PipeWire/PulseAudio usada pelo Jarvis.
+jarvis_source = "jarvis_mic"
+# Opcional: fonte normal do microfone; fica vazia para não silenciar chamadas.
+normal_source = ""
+wake_threshold = 0.15
+wake_confirm_frames = 2
+input_gain = 1.60
+silence_rms = 110
+silence_seconds = 0.12
+max_command_seconds = 5.0
+min_command_seconds = 0.5
+
+[ollama]
+url = "http://127.0.0.1:11434/api/generate"
+model = "qwen2.5:0.5b"
+timeout = 12.0
+
+[security]
+public_mode = "0"
+unsafe = "0"

@@ -23,6 +23,11 @@ from pathlib import Path
 from urllib.parse import quote_plus
 from urllib.request import Request, urlopen
 
+try:
+    import tomllib
+except ModuleNotFoundError:  # pragma: no cover - Python 3.10 fallback
+    tomllib = None
+
 import numpy as np
 from faster_whisper import WhisperModel
 from openwakeword.model import Model as WakeWordModel
@@ -31,30 +36,58 @@ from scipy.signal import butter, sosfilt
 
 
 BASE_DIR = Path(__file__).resolve().parent
-MODELS_DIR = BASE_DIR / "models"
+CONFIG_PATH = Path(os.environ.get("JARVIS_CONFIG", BASE_DIR / "config.toml")).expanduser()
+
+
+def _load_config() -> dict:
+    if tomllib is None or not CONFIG_PATH.is_file():
+        return {}
+    try:
+        with CONFIG_PATH.open("rb") as config_file:
+            data = tomllib.load(config_file)
+        return data if isinstance(data, dict) else {}
+    except (OSError, tomllib.TOMLDecodeError):
+        logging.getLogger("jarvis").warning("Configuração inválida: %s", CONFIG_PATH)
+        return {}
+
+
+CONFIG = _load_config()
+
+
+def _config(section: str, key: str, default: str) -> str:
+    value = CONFIG.get(section, {}).get(key, default)
+    return str(value) if value is not None else default
+
+
+def _config_path(key: str, default: Path) -> Path:
+    value = Path(_config("paths", key, str(default))).expanduser()
+    return value if value.is_absolute() else (CONFIG_PATH.parent / value).resolve()
+
+
+MODELS_DIR = _config_path("models_dir", BASE_DIR / "models")
 WAKE_MODELS_DIR = MODELS_DIR / "openwakeword"
-PIPER_MODEL = MODELS_DIR / "piper" / "pt_BR-cadu-medium.onnx"
-WHISPER_SMALL_ROOT = Path.home() / ".cache/huggingface/hub/models--Systran--faster-whisper-small/snapshots"
-WHISPER_MEDIUM_ROOT = Path.home() / ".cache/huggingface/hub/models--Systran--faster-whisper-medium/snapshots"
+PIPER_MODEL = _config_path("piper_model", MODELS_DIR / "piper" / "pt_BR-cadu-medium.onnx")
+WHISPER_SMALL_ROOT = _config_path("whisper_small", Path.home() / ".cache/huggingface/hub/models--Systran--faster-whisper-small/snapshots")
+WHISPER_MEDIUM_ROOT = _config_path("whisper_medium", Path.home() / ".cache/huggingface/hub/models--Systran--faster-whisper-medium/snapshots")
 LISTENING_STATE = Path(os.environ.get("XDG_RUNTIME_DIR", f"/run/user/{os.getuid()}")) / "jarvis-listening"
 LEARNED_VARIATIONS_PATH = Path(os.environ.get("XDG_CONFIG_HOME", Path.home() / ".config")) / "jarvis" / "learned_variations.json"
-AUDIO_SOURCE = "jarvis_mic"
-NORMAL_AUDIO_SOURCE = "alsa_input.pci-0000_00_1f.3.analog-stereo"
+AUDIO_SOURCE = _config("audio", "jarvis_source", "jarvis_mic")
+NORMAL_AUDIO_SOURCE = _config("audio", "normal_source", "")
 SAMPLE_RATE = 16_000
 FRAME_SAMPLES = 1_280
 FRAME_BYTES = FRAME_SAMPLES * 2
-WAKE_THRESHOLD = 0.15
-WAKE_CONFIRM_FRAMES = 2
-INPUT_GAIN = 1.60
-SILENCE_RMS = 110.0
-SILENCE_SECONDS = 0.12
-MAX_COMMAND_SECONDS = 5.0
-MIN_COMMAND_SECONDS = 0.5
-AI_URL = os.environ.get("JARVIS_AI_URL", "http://127.0.0.1:11434/api/generate")
-AI_MODEL = os.environ.get("JARVIS_AI_MODEL", "qwen2.5:0.5b")
-AI_TIMEOUT = float(os.environ.get("JARVIS_AI_TIMEOUT", "12.0"))
-PUBLIC_MODE = os.environ.get("JARVIS_PUBLIC_MODE", "0") == "1"
-UNSAFE_MODE = os.environ.get("JARVIS_UNSAFE", "0") == "1"
+WAKE_THRESHOLD = float(_config("audio", "wake_threshold", "0.15"))
+WAKE_CONFIRM_FRAMES = int(_config("audio", "wake_confirm_frames", "2"))
+INPUT_GAIN = float(_config("audio", "input_gain", "1.60"))
+SILENCE_RMS = float(_config("audio", "silence_rms", "110"))
+SILENCE_SECONDS = float(_config("audio", "silence_seconds", "0.12"))
+MAX_COMMAND_SECONDS = float(_config("audio", "max_command_seconds", "5.0"))
+MIN_COMMAND_SECONDS = float(_config("audio", "min_command_seconds", "0.5"))
+AI_URL = os.environ.get("JARVIS_AI_URL", _config("ollama", "url", "http://127.0.0.1:11434/api/generate"))
+AI_MODEL = os.environ.get("JARVIS_AI_MODEL", _config("ollama", "model", "qwen2.5:0.5b"))
+AI_TIMEOUT = float(os.environ.get("JARVIS_AI_TIMEOUT", _config("ollama", "timeout", "12.0")))
+PUBLIC_MODE = os.environ.get("JARVIS_PUBLIC_MODE", _config("security", "public_mode", "0")) == "1"
+UNSAFE_MODE = os.environ.get("JARVIS_UNSAFE", _config("security", "unsafe", "0")) == "1"
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(message)s")
 LOG = logging.getLogger("jarvis")
@@ -74,9 +107,7 @@ def _ai_catalog() -> tuple[str, ...]:
         "abrir codex", "abrir copilot", "que horas são", "qual a data", "aumentar volume",
         "diminuir volume", "silenciar", "pausar mídia", "próxima música", "música anterior",
         "tela preta", "o que você pode fazer", "pesquisar",
-        "ativar performance", "atualizar layout", "ativar terceiro monitor", "desativar terceiro monitor",
-        "abrir pc remoto", "iniciar autoclicker", "mostrar consumo", "abrir notebook",
-        "mostrar processos pesados", "restaurar padrão", "resfriar pc", "mostrar rede",
+        "mostrar rede",
         "cala a boca",
     ]
     scripts = [phrase for phrase, _, _ in EXTRA_COMMAND_SPECS]
@@ -233,18 +264,8 @@ class CommandResult:
 
 def expand_command_variations(script_commands: list[tuple[str, list[str], str]]) -> list[tuple[str, list[str], str]]:
     expansions = {
-        "resfriar normal": ("restaurar|normalizar|reverter|voltar|retornar|desfazer|cancelar|parar|deixar|colocar", "limites originais|resfriamento normal|temperatura normal|modo normal|configuração normal|configuracao normal|desempenho original|parâmetros originais|parametros originais|estado original|controle normal|configurações originais|configuracoes originais"),
-        "performace": ("ativar|ative|iniciar|inicie|ligar|ligue|usar|use|colocar|coloque", "performance|modo performance|modo desempenho|modo jogo|preparar pc para jogar|pc para jogar|alto desempenho|jogos|jogar|perfil gamer|perfil de jogos|potência máxima|potencia maxima"),
-        "atualizarlayout": ("atualizar|atualize|sincronizar|sincronize|recarregar|recarregue|aplicar|aplique|refazer|refaça|refazer|corrigir", "layout|o layout|configurações|configuracoes|configuração visual|configuracao visual|barra|waybar|tela|ambiente|aparência|aparencia|dotfiles"),
-        "3monitor": ("ativar|ative|iniciar|inicie|ligar|ligue|usar|use|conectar|conecte|adicionar|adicione", "terceiro monitor|terceira monitora|três monitores|tres monitores|3 monitores|tela três|tela tres|monitor extra|monitor adicional|notebook como monitor|notebook de monitor|monitor do notebook"),
-        "pc-remoto": ("abrir|abra|iniciar|inicie|conectar|conecte|acessar|acesse|usar|use|ligar|ligue", "pc remoto|computador remoto|acesso remoto|pc no notebook|computador no notebook|desktop remoto|meu pc remotamente|meu computador|sessão remota|sessao remota|moonlight|stream do pc"),
-        "autoclicker": ("ativar|ative|iniciar|inicie|ligar|ligue|abrir|abra|executar|execute|usar|use", "autoclicker|auto clicker|auto clique|cliques automáticos|cliques automaticos|cliques repetidos|cliques rápidos|cliques rapidos|clicador automático|clicador automatico|automação de cliques|automacao de cliques|clicar automaticamente|cliques contínuos|cliques continuos"),
         "consumo": ("mostrar|mostre|ver|veja|consultar|consulte|exibir|exiba|informar|informe|checar|verificar", "consumo|consumo do pc|status do pc|estado do computador|cpu e ram|cpu ram|memória e cpu|memoria e cpu|temperatura do pc|recursos do pc|uso do computador|desempenho do pc"),
-        "notebook": ("abrir|abra|iniciar|inicie|conectar|conecte|acessar|acesse|entrar|entre|usar|use", "notebook|o notebook|meu notebook|computador portátil|computador portatil|ssh do notebook|conexão do notebook|conexao do notebook|sessão do notebook|sessao do notebook|terminal do notebook|acesso ao notebook"),
-        "parar3monitor": ("parar|pare|desativar|desative|desligar|desligue|encerrar|encerre|fechar|feche|finalizar|finalize", "terceiro monitor|terceira monitora|três monitores|tres monitores|3 monitores|tela três|tela tres|monitor extra|monitor adicional|monitor remoto|moonlight|transmissão remota|transmissao remota"),
         "pesados": ("mostrar|mostre|ver|veja|listar|liste|exibir|exiba|consultar|consulte|encontrar|encontre", "processos pesados|programas pesados|aplicativos pesados|processos que mais usam|programas que mais usam|maior consumo|maior uso de cpu|maior uso de memória|maior uso de memoria|tarefas pesadas|processos do pc|aplicativos do pc"),
-        "padrao": ("restaurar|restaure|voltar|volte|retornar|retorne|ativar|ative|usar|use|colocar|coloque|iniciar|inicie", "padrão|padrao|modo padrão|modo padrao|sessão padrão|sessao padrao|modo normal|sessão normal|sessao normal|configuração padrão|configuracao padrao|perfil padrão|perfil padrao|estado padrão|estado padrao|configuração original|configuracao original"),
-        "resfriar": ("ativar|ative|iniciar|inicie|ligar|ligue|usar|use|reduzir|reduza|baixar|baixe|diminuir|diminua", "resfriamento|modo frio|resfriar pc|esfriar pc|temperatura|temperatura do pc|calor do pc|calor|temperatura baixa|resfriamento do computador|modo de resfriamento|controle térmico|controle termico"),
         "rede": ("mostrar|mostre|ver|veja|consultar|consulte|exibir|exiba|informar|informe|checar|verificar", "rede|status da rede|estado da rede|internet|status da internet|conexão|conexao|conexão de rede|conexao de rede|ip|ip local|gateway|tailscale"),
     }
     expanded = []
@@ -336,8 +357,8 @@ EXTRA_COMMAND_SPECS = [
     ("abrir youtube", "xdg-open https://youtube.com", "Abrindo YouTube."),
     ("abrir discord", "discord", "Abrindo Discord."),
     ("abrir vscode", "code", "Abrindo VS Code."),
-    ("abrir downloads", "dolphin $HOME/Downloads", "Abrindo Downloads."),
-    ("capturar tela", "grim $HOME/Imagens/captura-$(date +%Y%m%d-%H%M%S).png", "Capturando tela."),
+    ("abrir downloads", "xdg-open ${XDG_DOWNLOAD_DIR:-$HOME/Downloads}", "Abrindo Downloads."),
+    ("capturar tela", "grim \"${XDG_PICTURES_DIR:-$HOME/Pictures}/captura-$(date +%Y%m%d-%H%M%S).png\"", "Capturando tela."),
     ("bloquear computador", "loginctl lock-session", "Bloqueando computador."),
     ("proxima musica", "playerctl next", "Próxima música."),
     ("musica anterior", "playerctl previous", "Música anterior."),
@@ -354,30 +375,15 @@ EXTRA_COMMAND_SPECS = [
     ("abrir configuracoes", "systemsettings", "Abrindo configurações."),
     ("abrir gerenciador de processos", "ksysguard", "Abrindo gerenciador de processos."),
     ("abrir monitor do sistema", "missioncenter", "Abrindo monitor do sistema."),
-    ("abrir documentos", "dolphin $HOME/Documentos", "Abrindo Documentos."),
-    ("abrir imagens", "dolphin $HOME/Imagens", "Abrindo Imagens."),
-    ("abrir projetos", "dolphin $HOME/Documentos/projetos", "Abrindo Projetos."),
-    ("mostrar servicos ativos", "systemctl --user --type=service --state=running", "Mostrando serviços ativos."),
-    ("mostrar servicos falhos", "systemctl --user --failed", "Mostrando serviços falhos."),
-    ("mostrar logs do jarvis", "journalctl --user -u jarvis.service -n 40 --no-pager", "Mostrando logs do Jarvis."),
-    ("reiniciar jarvis", "systemctl --user restart jarvis.service", "Reiniciando Jarvis."),
+    ("abrir documentos", "xdg-open ${XDG_DOCUMENTS_DIR:-$HOME/Documents}", "Abrindo Documentos."),
+    ("abrir imagens", "xdg-open ${XDG_PICTURES_DIR:-$HOME/Pictures}", "Abrindo Imagens."),
     ("mostrar atualizacoes", "checkupdates", "Mostrando atualizações."),
     ("atualizar sistema", "sudo pacman -Syu", "Atualizando sistema."),
-    ("ver status do git", "cd $HOME/Documentos/projetos/jarvis && git status", "Mostrando status do Git."),
-    ("executar testes", "cd $HOME/Documentos/projetos/jarvis && .venv/bin/python -m unittest discover -s tests -q", "Executando testes."),
-    ("abrir projeto jarvis", "kitty --directory $HOME/Documentos/projetos/jarvis", "Abrindo projeto Jarvis."),
-    ("mostrar branches", "cd $HOME/Documentos/projetos/jarvis && git branch -a", "Mostrando branches."),
-    ("mostrar commits", "cd $HOME/Documentos/projetos/jarvis && git log --oneline -15", "Mostrando commits."),
-    ("enviar projeto", "cd $HOME/Documentos/projetos/jarvis && git push", "Enviando projeto."),
     ("mostrar pontos de montagem", "findmnt", "Mostrando pontos de montagem."),
     ("mostrar portas abertas", "ss -tuln", "Mostrando portas abertas."),
     ("listar processos", "ps aux --sort=-%cpu | head -20", "Listando processos."),
     ("reiniciar audio", "systemctl --user restart pipewire pipewire-pulse", "Reiniciando áudio."),
     ("recarregar waybar", "pkill -SIGUSR2 waybar", "Recarregando Waybar."),
-    ("reiniciar waybar", "systemctl --user restart waybar.service", "Reiniciando Waybar."),
-    ("mostrar janelas", "hyprctl clients", "Mostrando janelas abertas."),
-    ("recarregar hyprland", "hyprctl reload", "Recarregando Hyprland."),
-    ("reiniciar wallpaper", "systemctl --user restart hyprpaper.service", "Reiniciando wallpaper."),
     ("suspender computador", "systemctl suspend", "Suspendendo computador."),
     ("reiniciar computador", "systemctl reboot", "Reiniciando computador."),
     ("desligar computador", "systemctl poweroff", "Desligando computador."),
@@ -386,17 +392,10 @@ EXTRA_COMMAND_SPECS = [
     ("abrir prism launcher", "prismlauncher", "Abrindo PrismLauncher."),
     ("abrir retroarch", "retroarch", "Abrindo RetroArch."),
     ("abrir controle de audio", "pavucontrol", "Abrindo controle de áudio."),
-    ("mostrar telas", "hyprctl monitors all", "Mostrando telas."),
     ("mostrar clipboard", "wl-paste", "Mostrando clipboard."),
     ("copiar clipboard", "wl-copy", "Clipboard pronto para receber texto."),
-    ("silenciar microfone", "pactl set-source-mute jarvis_mic 1", "Silenciando microfone."),
-    ("ativar microfone", "pactl set-source-mute jarvis_mic 0", "Ativando microfone."),
-    ("mostrar volume do microfone", "pactl get-source-volume jarvis_mic", "Mostrando volume do microfone."),
-    ("microfone cem por cento", "pactl set-source-volume jarvis_mic 100%", "Microfone em 100 por cento."),
-    ("microfone oitenta por cento", "pactl set-source-volume jarvis_mic 80%", "Microfone em 80 por cento."),
-    ("microfone vinte por cento", "pactl set-source-volume jarvis_mic 20%", "Microfone em 20 por cento."),
-    ("capturar area da tela", "grim -g \"$(slurp)\" $HOME/Imagens/area-$(date +%Y%m%d-%H%M%S).png", "Capturando área da tela."),
-    ("gravar tela", "wf-recorder -f $HOME/Vídeos/gravação-$(date +%Y%m%d-%H%M%S).mp4", "Gravando tela."),
+    ("capturar area da tela", "grim -g \"$(slurp)\" \"${XDG_PICTURES_DIR:-$HOME/Pictures}/area-$(date +%Y%m%d-%H%M%S).png\"", "Capturando área da tela."),
+    ("gravar tela", "wf-recorder -f \"${XDG_VIDEOS_DIR:-$HOME/Videos}/gravacao-$(date +%Y%m%d-%H%M%S).mp4\"", "Gravando tela."),
     ("parar gravacao", "pkill -INT wf-recorder", "Parando gravação."),
     ("mostrar calendario", "cal -3", "Mostrando calendário."),
     ("mostrar data", "date", "Mostrando data."),
@@ -405,21 +404,7 @@ EXTRA_COMMAND_SPECS = [
     ("limpar clipboard", "printf '' | wl-copy", "Limpando clipboard."),
     ("abrir lixeira", "dolphin trash:/", "Abrindo lixeira."),
     ("esvaziar lixeira", "gio trash --empty", "Esvaziando lixeira."),
-    ("compactar projeto", "cd $HOME/Documentos/projetos/jarvis && tar -czf $HOME/jarvis-backup.tar.gz --exclude=.venv --exclude=.git .", "Compactando projeto."),
-    ("fazer backup do jarvis", "cd $HOME/Documentos/projetos/jarvis && tar -czf $HOME/jarvis-backup.tar.gz --exclude=.venv --exclude=.git .", "Fazendo backup do Jarvis."),
-    ("sincronizar projeto", "cd $HOME/Documentos/projetos/jarvis && git pull --ff-only", "Sincronizando projeto."),
     ("mostrar versao python", "python --version", "Mostrando versão do Python."),
-    ("mostrar pacotes python", "cd $HOME/Documentos/projetos/jarvis && .venv/bin/pip list", "Mostrando pacotes Python."),
-    ("validar python", "cd $HOME/Documentos/projetos/jarvis && .venv/bin/python -m py_compile jarvis.py write_codex.py", "Validando Python."),
-    ("verificar codigo", "cd $HOME/Documentos/projetos/jarvis && git diff --check", "Verificando código."),
-    ("mostrar diferencas", "cd $HOME/Documentos/projetos/jarvis && git diff", "Mostrando diferenças."),
-    ("abrir readme", "xdg-open $HOME/Documentos/projetos/jarvis/README.md", "Abrindo README."),
-    ("abrir arquivos recentes", "dolphin --select $HOME/Documentos/projetos/jarvis", "Abrindo arquivos recentes."),
-    ("minimizar janela", "hyprctl dispatch movetoworkspacesilent special", "Minimizando janela."),
-    ("fechar janela atual", "hyprctl dispatch killactive", "Fechando janela atual."),
-    ("tela cheia", "hyprctl dispatch fullscreen", "Alternando tela cheia."),
-    ("mostrar workspace", "hyprctl activeworkspace", "Mostrando workspace atual."),
-    ("mostrar janela atual", "hyprctl activewindow", "Mostrando janela atual."),
     ("abrir pasta home", "dolphin $HOME", "Abrindo pasta pessoal."),
 ]
 
@@ -500,10 +485,7 @@ def generate_command_variations(specs: list[tuple[str, str, str]], count: int = 
 
 
 CORE_COMMAND_VARIATION_SPECS = [
-    (phrase, "", "") for phrase in (
-        "resfriar normal", "performace", "atualizarlayout", "3monitor", "pc-remoto",
-        "autoclicker", "consumo", "notebook", "parar3monitor", "pesados", "padrao", "resfriar", "rede",
-    )
+    # Comandos específicos de desktop ficam fora da versão pública.
 ]
 _variation_used: set[str] = set()
 _all_generated_variations = generate_command_variations(EXTRA_COMMAND_SPECS + CORE_COMMAND_VARIATION_SPECS, used=_variation_used)
@@ -584,21 +566,8 @@ def interpret_command(text: str, now: datetime | None = None) -> CommandResult:
     if extra_result:
         return extra_result
 
-    script_commands = [
-        ("resfriar normal", ["resfriar normal", "resfriar normalmente", "temperatura normal", "restaurar limites", "limites originais"], "Restaurando limites originais."),
-        ("performace", ["performance", "performace", "modo desempenho", "modo performance", "preparar pc para jogar", "pc para jogar", "modo jogo"], "Preparando o PC para jogar."),
-        ("atualizarlayout", ["atualizar layout", "atualize o layout", "sincronizar configurações", "sincronizar configuracoes", "recarregar configurações", "recarregar configuracoes"], "Sincronizando configurações."),
-        ("3monitor", ["3 monitor", "terceiro monitor", "terceira monitora", "terceiro monitora", "terceiro monitores", "três monitor", "tres monitor", "três monitores", "tres monitores", "tela três", "tela tres", "notebook como monitor", "ativar monitor", "ative monitor", "ativar terceiro monitor", "ative terceiro monitor", "ativar terceira monitora", "ative terceira monitora", "ligar terceiro monitor", "ligue terceiro monitor", "usar terceiro monitor"], "Ativando notebook como monitor."),
-        ("pc-remoto", ["pc remoto", "pc-remoto", "acesso remoto", "abrir pc remoto", "abrir pc no notebook", "conectar ao pc"], "Abrindo PC remoto."),
-        ("autoclicker", ["autoclicker", "auto clicker", "auto clique", "cliques automáticos", "cliques automaticos", "iniciar cliques"], "Iniciando cliques automáticos."),
-        ("consumo", ["consumo", "consumo do pc", "status do pc", "cpu ram", "cpu e ram", "temperatura do pc", "recursos do pc"], "Mostrando consumo do PC."),
-        ("notebook", ["notebook", "abrir notebook", "conectar notebook", "ssh notebook", "acessar notebook"], "Abrindo conexão com notebook."),
-        ("parar3monitor", ["parar 3 monitor", "parar terceiro monitor", "parar três monitor", "parar tres monitor", "parar monitores", "desativar 3 monitor", "desativar terceiro monitor", "desative o terceiro monitor", "desligar terceiro monitor", "desligue o terceiro monitor", "encerrar moonlight", "fechar moonlight", "desligar monitor remoto"], "Encerrando monitor remoto."),
-        ("pesados", ["pesados", "processos pesados", "programas pesados", "processos que mais usam", "ver processos"], "Mostrando processos pesados."),
-        ("padrao", ["padrão", "padrao", "modo padrão", "modo padrao", "sessão padrão", "sessao padrao", "restaurar sessão", "restaurar sessao", "modo normal"], "Restaurando sessão padrão."),
-        ("resfriar", ["resfriar", "esfriar", "resfriar pc", "esfriar pc", "reduzir temperatura", "baixar temperatura", "reduzir calor", "modo frio"], "Reduzindo temperatura sem fechar aplicativos."),
-        ("rede", ["rede", "status da rede", "status da internet", "ver minha rede", "internet", "conexão", "conexao"], "Mostrando status da rede."),
-    ]
+    # Ações específicas do desktop do mantenedor não fazem parte da versão pública.
+    script_commands = []
     if not hasattr(interpret_command, "_script_commands"):
         interpret_command._script_commands = expand_command_variations(script_commands)
     script_commands = interpret_command._script_commands
@@ -614,8 +583,6 @@ def interpret_command(text: str, now: datetime | None = None) -> CommandResult:
             if script == core_script:
                 action = [str(Path.home() / ".local/bin" / script)]
                 return CommandResult(response, action)
-    if any(verb in command for verb in ("desativ", "deslig", "parar", "pare", "encerrar", "fechar")) and any(word in command for word in ("monitor", "monitora")):
-        return CommandResult("Encerrando monitor remoto.", [str(Path.home() / ".local/bin/parar3monitor")])
     if not hasattr(interpret_command, "_script_patterns"):
         interpret_command._script_patterns = [
             (script, re.compile(rf"(?<!\w)(?:{'|'.join(re.escape(alias) for alias in sorted(aliases, key=len, reverse=True) if alias)})(?!\w)"), response)
@@ -674,14 +641,10 @@ def interpret_command(text: str, now: datetime | None = None) -> CommandResult:
         return CommandResult("Próxima música.", ["playerctl", "next"])
     if "musica anterior" in command:
         return CommandResult("Música anterior.", ["playerctl", "previous"])
-    if "tela preta" in command:
-        return CommandResult("Alternando tela preta.", [str(Path.home() / ".config/hypr/scripts/tela_preta")])
     if "o que voce pode fazer" in command or "seus comandos" in command:
         return CommandResult(
             "Posso abrir aplicativos e terminal, pesquisar, informar hora e data, controlar volume e música, "
-            "ativar performance, atualizar layout, usar notebook como monitor, abrir PC remoto, iniciar autoclicker, "
-            "mostrar consumo e processos pesados, conectar notebook, parar monitor remoto, restaurar sessão padrão, "
-            "resfriar o PC, consultar rede, abrir Codex e abrir Copilot."
+            "consultar rede e recursos do sistema, capturar/gravar a tela, abrir Codex e abrir Copilot."
         )
 
     search = re.sub(r"^(pesquise|pesquisar|procure|procurar)( por)?\s+", "", command).strip()
@@ -786,12 +749,13 @@ class Jarvis:
             processed_path = Path(temporary.name)
         source_was_muted = False
         try:
-            previous_mute = subprocess.run(
-                ["pactl", "get-source-mute", NORMAL_AUDIO_SOURCE],
-                capture_output=True, text=True, check=False,
-            ).stdout
-            source_was_muted = "yes" in previous_mute.lower()
-            subprocess.run(["pactl", "set-source-mute", NORMAL_AUDIO_SOURCE, "1"], check=False)
+            if NORMAL_AUDIO_SOURCE:
+                previous_mute = subprocess.run(
+                    ["pactl", "get-source-mute", NORMAL_AUDIO_SOURCE],
+                    capture_output=True, text=True, check=False,
+                ).stdout
+                source_was_muted = "yes" in previous_mute.lower()
+                subprocess.run(["pactl", "set-source-mute", NORMAL_AUDIO_SOURCE, "1"], check=False)
             with wave.open(str(raw_path), "wb") as wav_file:
                 self.voice.synthesize_wav(text, wav_file)
             effect = (
@@ -806,10 +770,11 @@ class Jarvis:
             playback_path = processed_path if filtered.returncode == 0 else raw_path
             subprocess.run(["pw-play", str(playback_path)], check=False)
         finally:
-            subprocess.run(
-                ["pactl", "set-source-mute", NORMAL_AUDIO_SOURCE, "1" if source_was_muted else "0"],
-                check=False,
-            )
+            if NORMAL_AUDIO_SOURCE:
+                subprocess.run(
+                    ["pactl", "set-source-mute", NORMAL_AUDIO_SOURCE, "1" if source_was_muted else "0"],
+                    check=False,
+                )
             raw_path.unlink(missing_ok=True)
             processed_path.unlink(missing_ok=True)
 

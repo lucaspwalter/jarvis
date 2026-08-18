@@ -1,70 +1,72 @@
 # Jarvis
 
-Assistente de voz local para Linux, com ativação por palavra-chave, transcrição em português e execução de comandos do desktop.
+Local Linux voice assistant with Portuguese transcription, wake-word detection and a permission-controlled command registry.
 
-## Visão geral
+## Overview
 
-O Jarvis escuta a palavra de ativação, captura o comando, transcreve a fala e executa ações configuradas. O projeto também oferece ditado para uma janela já aberta do Codex.
+Jarvis listens for “Jarvis”, transcribes the following command and executes only actions registered by the local application. Ollama can classify unclear speech, but it never receives shell access.
 
-## Funcionalidades
+## Features
 
-- Ativação por “Jarvis” usando OpenWakeWord
-- Transcrição em português com Faster-Whisper
-- Resposta de voz local com Piper TTS
-- Comandos para aplicativos, mídia, monitores e desempenho do PC
-- Ditado para o Codex aberto, sem criar outra janela
-- Integração com Waybar e PipeWire/PulseAudio
-- Testes automatizados para interpretação de comandos
+- OpenWakeWord activation
+- Faster-Whisper Portuguese transcription
+- Piper local text-to-speech
+- Configurable audio sources, models and Ollama endpoint
+- Public mode with visible confirmation before external actions
+- Optional Codex dictation
+- Unit tests and GitHub Actions validation
 
-## Tecnologias
+## Requirements
 
-- Python 3
-- Faster-Whisper
-- OpenWakeWord
-- Piper TTS
-- NumPy, SciPy e scikit-learn
-- PipeWire/PulseAudio, `parec`, `pw-play` e `wtype`
+Linux with Python 3.11+, PipeWire/PulseAudio, `parec`, `pactl`, `pw-play`, `ffmpeg`, `wtype` and the model files listed in `config.example.toml`.
 
-## Instalação
+## Getting started
 
 ```bash
 git clone https://github.com/lucaspwalter/jarvis.git
 cd jarvis
 python -m venv .venv
 .venv/bin/pip install -r requirements.txt
+cp config.example.toml config.toml
 ```
 
-Os modelos de wake word, Piper e Whisper devem estar disponíveis nos caminhos configurados em `jarvis.py`.
+Edit `config.toml` with the audio source and model paths. Keep personal configuration out of Git; `config.toml` is ignored.
 
-## Uso
+## Ollama
+
+Install Ollama using its official instructions, start the local service, and download the model:
+
+```bash
+ollama serve
+ollama pull qwen2.5:0.5b
+```
+
+The default endpoint is `http://127.0.0.1:11434/api/generate`. Change `ollama.model` or `ollama.url` in `config.toml` when necessary.
+
+Ollama is used only after the deterministic command matcher fails. In public mode it classifies the request against known intents; it cannot invent or execute shell commands.
+
+## Usage
 
 ```bash
 .venv/bin/python jarvis.py
 ```
 
-Diga “Jarvis” e, depois, o comando. Para ditar no Codex já aberto, diga “Jarvis, digite para mim”, aguarde a resposta e fale o texto.
+Say “Jarvis” followed by a registered command. Run tests with:
 
-## Modo público
+```bash
+.venv/bin/python -m unittest discover -s tests -q
+```
 
-O modo público usa Ollama para interpretar todos os comandos. Ações com efeito
-externo abrem um terminal de autorização e só executam após `y`/`s`.
+## Public and unsafe modes
+
+Public mode asks for confirmation in a terminal before actions with external effects:
 
 ```bash
 JARVIS_PUBLIC_MODE=1 .venv/bin/python jarvis.py
 ```
 
-### Modo unsafe
+`JARVIS_UNSAFE=1` skips that prompt only for actions already registered locally. It does not enable arbitrary shell execution.
 
-Use somente em computador confiável. Ele remove a confirmação visual das ações
-já cadastradas pelo Jarvis; não transforma Ollama em shell livre.
+## License
 
-```bash
-JARVIS_PUBLIC_MODE=1 JARVIS_UNSAFE=1 .venv/bin/python jarvis.py
-```
-
-Ollama nunca recebe acesso direto ao shell. O código local continua controlando
-quais ações podem ser executadas.
-
-## Licença
-
-Ainda não definida.
+MIT. See [LICENSE](LICENSE).
