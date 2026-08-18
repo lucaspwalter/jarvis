@@ -109,6 +109,7 @@ class CommandTests(unittest.TestCase):
     def test_quiet_command(self):
         self.assertTrue(is_quiet_command("Jarvis, cala boca"))
         self.assertTrue(is_quiet_command("Jarvis, pare de ouvir"))
+        self.assertEqual(interpret_command("Jarvis, cala boca").response, "Senhor, me desculpe.")
 
 
 if __name__ == "__main__":

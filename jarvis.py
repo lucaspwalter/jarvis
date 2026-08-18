@@ -292,6 +292,8 @@ def extra_command_result(command: str) -> CommandResult | None:
 
 
 def interpret_command(text: str, now: datetime | None = None) -> CommandResult:
+    if is_quiet_command(text):
+        return CommandResult("Senhor, me desculpe.")
     payload = codex_write_payload(text)
     if payload:
         return CommandResult("Digitando.", [str(BASE_DIR / "write_codex.py"), payload])
