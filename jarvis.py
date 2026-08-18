@@ -41,7 +41,7 @@ WAKE_CONFIRM_FRAMES = 2
 INPUT_GAIN = 1.60
 SILENCE_RMS = 110.0
 SILENCE_SECONDS = 0.12
-MAX_COMMAND_SECONDS = 9.0
+MAX_COMMAND_SECONDS = 5.0
 MIN_COMMAND_SECONDS = 0.5
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(message)s")
