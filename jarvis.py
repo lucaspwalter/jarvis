@@ -46,7 +46,7 @@ SILENCE_SECONDS = 0.12
 MAX_COMMAND_SECONDS = 5.0
 MIN_COMMAND_SECONDS = 0.5
 AI_URL = os.environ.get("JARVIS_AI_URL", "http://127.0.0.1:11434/api/generate")
-AI_MODEL = os.environ.get("JARVIS_AI_MODEL", "qwen2.5:1.5b")
+AI_MODEL = os.environ.get("JARVIS_AI_MODEL", "qwen2.5:0.5b")
 AI_TIMEOUT = float(os.environ.get("JARVIS_AI_TIMEOUT", "12.0"))
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(message)s")
@@ -586,7 +586,7 @@ class Jarvis:
             effect = (
                 "asetrate=22050*0.96,aresample=22050,atempo=1.10,"
                 "highpass=f=110,lowpass=f=6500,"
-                "acompressor=threshold=-20dB:ratio=2:attack=8:release=70,volume=0.50"
+                "acompressor=threshold=-20dB:ratio=2:attack=8:release=70,volume=0.35"
             )
             filtered = subprocess.run(
                 ["ffmpeg", "-hide_banner", "-loglevel", "error", "-y", "-i", str(raw_path), "-af", effect, str(processed_path)],
