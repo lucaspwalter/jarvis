@@ -740,6 +740,7 @@ class Jarvis:
                         continue
                     LOG.info("Ativação detectada. score=%.3f", score)
                     ducked_audio = self.duck_app_audio()
+                    quiet_call = False
                     try:
                         self.set_listening(True)
                         try:
@@ -751,6 +752,10 @@ class Jarvis:
                             if is_quiet_command(text):
                                 self.speak("Senhor, me desculpe.")
                                 self.listening_enabled = True
+                                quiet_call = True
+                                self.wake.reset()
+                                wake_window.clear()
+                                pre_roll.clear()
                                 LOG.info("Chamada atual encerrada; escuta permanece ativa.")
                             elif is_codex_write_request(text) and codex_write_payload(text) is None:
                                 self.speak("Pode ditar.")
@@ -772,6 +777,9 @@ class Jarvis:
                             LOG.info("Ativação ignorada: nenhum comando audível.")
                     finally:
                         self.restore_app_audio(ducked_audio)
+                    if quiet_call:
+                        # Mantém mesmo stream de wake word; evita janela sem escuta após cancelamento.
+                        continue
                     time.sleep(0.5)
                     break
             finally:
