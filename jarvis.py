@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import argparse
+import json
 import logging
 import math
 import os
@@ -17,6 +18,7 @@ from dataclasses import dataclass
 from datetime import datetime
 from pathlib import Path
 from urllib.parse import quote_plus
+from urllib.request import Request, urlopen
 
 import numpy as np
 from faster_whisper import WhisperModel
@@ -43,6 +45,9 @@ SILENCE_RMS = 110.0
 SILENCE_SECONDS = 0.12
 MAX_COMMAND_SECONDS = 5.0
 MIN_COMMAND_SECONDS = 0.5
+AI_URL = os.environ.get("JARVIS_AI_URL", "http://127.0.0.1:11434/api/generate")
+AI_MODEL = os.environ.get("JARVIS_AI_MODEL", "qwen2.5:1.5b")
+AI_TIMEOUT = float(os.environ.get("JARVIS_AI_TIMEOUT", "0.8"))
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(message)s")
 LOG = logging.getLogger("jarvis")
@@ -51,6 +56,63 @@ LOG = logging.getLogger("jarvis")
 def normalize(text: str) -> str:
     text = unicodedata.normalize("NFKD", text).encode("ascii", "ignore").decode()
     return re.sub(r"[^a-z0-9 ]+", " ", text.lower()).strip()
+
+
+def _ai_catalog() -> tuple[str, ...]:
+    """Lista segura: IA escolhe intenção; nunca recebe comandos shell."""
+    if hasattr(_ai_catalog, "_cached"):
+        return _ai_catalog._cached
+    common = [
+        "abrir firefox", "abrir chrome", "abrir terminal", "abrir dolphin", "abrir arquivos",
+        "abrir codex", "abrir copilot", "que horas são", "qual a data", "aumentar volume",
+        "diminuir volume", "silenciar", "pausar mídia", "próxima música", "música anterior",
+        "tela preta", "o que você pode fazer", "pesquisar",
+        "ativar performance", "atualizar layout", "ativar terceiro monitor", "desativar terceiro monitor",
+        "abrir pc remoto", "iniciar autoclicker", "mostrar consumo", "abrir notebook",
+        "mostrar processos pesados", "restaurar padrão", "resfriar pc", "mostrar rede",
+        "cala a boca",
+    ]
+    scripts = [phrase for phrase, _, _ in EXTRA_COMMAND_SPECS]
+    _ai_catalog._cached = tuple(dict.fromkeys(common + scripts))
+    return _ai_catalog._cached
+
+
+def ai_interpret_command(text: str) -> str | None:
+    """Converte fala em intenção existente. Falha rápido se IA local indisponível."""
+    spoken = re.sub(r"^(ei +)?jarvis\b", "", text, flags=re.IGNORECASE).strip(" ,. ")
+    if not spoken:
+        return None
+    catalog = _ai_catalog()
+    prompt = (
+        "Você é roteador de comandos em português. Não execute nada. "
+        "Escolha somente uma opção da lista. Retorne apenas JSON válido: "
+        '{"command":"opção exata","confidence":0.0}. '
+        "Se não houver correspondência, use command vazio. Lista: "
+        + " | ".join(catalog)
+        + f"\nFala: {spoken}"
+    )
+    payload = json.dumps({
+        "model": AI_MODEL,
+        "prompt": prompt,
+        "stream": False,
+        "format": "json",
+        "keep_alive": "60s",
+        "options": {"temperature": 0, "num_predict": 24},
+    }).encode()
+    try:
+        request = Request(AI_URL, data=payload, headers={"Content-Type": "application/json"})
+        with urlopen(request, timeout=AI_TIMEOUT) as response:
+            result = json.loads(response.read().decode())
+        raw = result.get("response", "")
+        parsed = json.loads(raw) if isinstance(raw, str) else raw
+        command = str(parsed.get("command", "")).strip()
+        confidence = float(parsed.get("confidence", 0))
+        if confidence < 0.78 or command not in catalog:
+            return None
+        return command
+    except (OSError, ValueError, TypeError, json.JSONDecodeError):
+        LOG.debug("IA local indisponível ou resposta inválida", exc_info=True)
+        return None
 
 
 def add_honorific(text: str) -> str:
@@ -641,6 +703,11 @@ class Jarvis:
     def execute(self, text: str) -> None:
         LOG.info("Comando reconhecido: %s", text)
         result = interpret_command(text)
+        if result.action is None and result.response.startswith("Não entendi"):
+            interpreted = ai_interpret_command(text)
+            if interpreted:
+                LOG.info("IA local interpretou como: %s", interpreted)
+                result = interpret_command(interpreted)
         if result.action:
             try:
                 detached(result.action)

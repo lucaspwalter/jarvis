@@ -1,11 +1,12 @@
 import sys
 import unittest
+from unittest.mock import patch
 from datetime import datetime
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
-from jarvis import CODEX_WRITE_VARIATIONS, MEDIA_ERROR_VARIATIONS, MEDIA_VARIATIONS, add_honorific, codex_write_payload, enhance_command_audio, expand_command_variations, interpret_command, is_codex_write_request, is_quiet_command, remove_dictation_prompt
+from jarvis import CODEX_WRITE_VARIATIONS, MEDIA_ERROR_VARIATIONS, MEDIA_VARIATIONS, add_honorific, ai_interpret_command, codex_write_payload, enhance_command_audio, expand_command_variations, interpret_command, is_codex_write_request, is_quiet_command, remove_dictation_prompt
 
 
 class CommandTests(unittest.TestCase):
@@ -101,6 +102,17 @@ class CommandTests(unittest.TestCase):
         result = interpret_command("faça uma coisa desconhecida")
         self.assertIsNone(result.action)
         self.assertIn("Diga novamente", result.response)
+
+    def test_ai_only_returns_known_intent(self):
+        class FakeResponse:
+            def __enter__(self):
+                return self
+            def __exit__(self, *args):
+                return False
+            def read(self):
+                return b'{"response":"{\\"command\\":\\"abrir firefox\\",\\"confidence\\":0.99}"}'
+        with patch("jarvis.urlopen", return_value=FakeResponse()):
+            self.assertEqual(ai_interpret_command("abra a raposa"), "abrir firefox")
 
     def test_honorific(self):
         self.assertEqual(add_honorific("Sistema online."), "Senhor, Sistema online.")
