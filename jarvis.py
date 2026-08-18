@@ -496,6 +496,7 @@ class Jarvis:
         LOG.info("Modelos de transcrição: small=%s medium=%s", small_path, medium_path)
         self.voice: PiperVoice | None = PiperVoice.load(PIPER_MODEL)
         self.running = True
+        self.listening_enabled = True
 
     @staticmethod
     def _find_whisper_model(model_root: Path) -> Path:
@@ -646,6 +647,10 @@ class Jarvis:
         self.set_listening(False)
         LOG.info("Jarvis pronto. Fonte=%s limite=%.2f", AUDIO_SOURCE, WAKE_THRESHOLD)
         while self.running:
+            if not self.listening_enabled:
+                self.set_listening(False)
+                time.sleep(0.2)
+                continue
             stream = AudioStream()
             try:
                 self.wake.reset()
@@ -671,7 +676,7 @@ class Jarvis:
                         if text and normalize(re.sub(r"^(ei +)?jarvis\b", "", text, flags=re.IGNORECASE)).strip(" ,."):
                             if is_quiet_command(text):
                                 self.speak("Desculpa, senhor.")
-                                self.running = False
+                                self.listening_enabled = False
                             elif is_codex_write_request(text) and codex_write_payload(text) is None:
                                 self.speak("Pode ditar.")
                                 time.sleep(0.2)
