@@ -676,7 +676,7 @@ class Jarvis:
                         if text and normalize(re.sub(r"^(ei +)?jarvis\b", "", text, flags=re.IGNORECASE)).strip(" ,."):
                             if is_quiet_command(text):
                                 self.speak("Desculpa, senhor.")
-                                self.listening_enabled = False
+                                self.listening_enabled = True
                             elif is_codex_write_request(text) and codex_write_payload(text) is None:
                                 self.speak("Pode ditar.")
                                 time.sleep(0.2)
