@@ -156,6 +156,7 @@ def is_quiet_command(text: str) -> bool:
     command = normalize(text)
     return any(phrase in command for phrase in (
         "cala boca",
+        "cala a boca",
         "cala muka",
         "cala boco",
         "cale a boca",
