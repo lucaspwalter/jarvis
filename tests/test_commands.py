@@ -5,7 +5,7 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
-from jarvis import CODEX_WRITE_VARIATIONS, MEDIA_ERROR_VARIATIONS, MEDIA_VARIATIONS, add_honorific, codex_write_payload, enhance_command_audio, expand_command_variations, interpret_command, is_codex_write_request, remove_dictation_prompt
+from jarvis import CODEX_WRITE_VARIATIONS, MEDIA_ERROR_VARIATIONS, MEDIA_VARIATIONS, add_honorific, codex_write_payload, enhance_command_audio, expand_command_variations, interpret_command, is_codex_write_request, is_quiet_command, remove_dictation_prompt
 
 
 class CommandTests(unittest.TestCase):
@@ -105,6 +105,10 @@ class CommandTests(unittest.TestCase):
     def test_honorific(self):
         self.assertEqual(add_honorific("Sistema online."), "Senhor, Sistema online.")
         self.assertEqual(add_honorific("Como posso ajudar, senhor?"), "Como posso ajudar, senhor?")
+
+    def test_quiet_command(self):
+        self.assertTrue(is_quiet_command("Jarvis, cala boca"))
+        self.assertTrue(is_quiet_command("Jarvis, pare de ouvir"))
 
 
 if __name__ == "__main__":

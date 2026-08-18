@@ -152,6 +152,18 @@ def remove_dictation_prompt(text: str) -> str:
     ).strip()
 
 
+def is_quiet_command(text: str) -> bool:
+    command = normalize(text)
+    return any(phrase in command for phrase in (
+        "cala boca",
+        "cale a boca",
+        "cala se",
+        "silencio jarvis",
+        "pare de ouvir",
+        "pare de escutar",
+    ))
+
+
 EXTRA_COMMAND_SPECS = [
     ("mostrar ip local", "ip -brief address", "Mostrando IP local."),
     ("mostrar ip publico", "curl -4 -s https://ifconfig.me; echo", "Mostrando IP público."),
@@ -657,7 +669,10 @@ class Jarvis:
                             self.set_listening(False)
                         text = self.transcribe(audio)
                         if text and normalize(re.sub(r"^(ei +)?jarvis\b", "", text, flags=re.IGNORECASE)).strip(" ,."):
-                            if is_codex_write_request(text) and codex_write_payload(text) is None:
+                            if is_quiet_command(text):
+                                self.speak("Desculpa, senhor.")
+                                self.running = False
+                            elif is_codex_write_request(text) and codex_write_payload(text) is None:
                                 self.speak("Pode ditar.")
                                 time.sleep(0.2)
                                 try:
